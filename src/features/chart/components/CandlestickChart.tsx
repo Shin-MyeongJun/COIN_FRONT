@@ -33,7 +33,13 @@ export function CandlestickChart({
 
   return (
     <div className="chart-frame">
-      <svg viewBox={`0 0 ${width} ${height}`} className="candle-chart" role="img" aria-label="Candlestick chart">
+      <svg
+        viewBox={`0 0 ${width} ${height}`}
+        className="candle-chart"
+        role="img"
+        aria-label="캔들 차트"
+        preserveAspectRatio="none"
+      >
         <rect x="0" y="0" width={width} height={height} rx="8" />
         {[0, 1, 2, 3].map((line) => (
           <line key={line} x1="20" x2={width - 20} y1={48 + line * 64} y2={48 + line * 64} className="grid-line" />

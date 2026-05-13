@@ -5,17 +5,13 @@ import type { PremiumPairView } from '../../premium/model/premiumViewTypes'
 export function PremiumSummaryStrip({ pair }: { pair: PremiumPairView }) {
   return (
     <div className="summary-strip">
-      <Stat label="Buy Premium" value={formatPercent(pair.buyPremiumRate)} tone="positive" />
-      <Stat label="Sell Premium" value={formatPercent(pair.sellPremiumRate)} tone="positive" />
+      <Stat label="매수 프리미엄" value={formatPercent(pair.buyPremiumRate)} tone="positive" />
+      <Stat label="매도 프리미엄" value={formatPercent(pair.sellPremiumRate)} tone="positive" />
+      <Stat label="24H 표준편차" value={`${pair.premiumStdDev24h.toFixed(2)}%`} tone="warning" />
       <Stat
-        label="1h change"
-        value={formatPercent(pair.oneHourChangeRate)}
-        tone={pair.oneHourChangeRate >= 0 ? 'positive' : 'negative'}
-      />
-      <Stat
-        label="24h change"
-        value={formatPercent(pair.twentyFourHourChangeRate)}
-        tone={pair.twentyFourHourChangeRate >= 0 ? 'positive' : 'negative'}
+        label="24H 평균"
+        value={formatPercent(pair.premiumAverage24h)}
+        tone={pair.premiumAverage24h >= 0 ? 'positive' : 'negative'}
       />
     </div>
   )

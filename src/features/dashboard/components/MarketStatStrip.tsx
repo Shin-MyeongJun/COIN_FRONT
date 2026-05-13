@@ -13,12 +13,12 @@ export function MarketStatStrip({
   totalVolume: number
 }) {
   return (
-    <section className="stat-strip" aria-label="Market summary">
-      <Stat label="Average buy premium" value={formatPercent(averageBuyPremium)} tone="positive" />
-      <Stat label="Highest premium" value={`${bestPair.asset} ${formatPercent(bestPair.buyPremiumRate)}`} tone="positive" />
-      <Stat label="Compared volume" value={`KRW ${formatVolume(totalVolume)}`} />
-      <Stat label="Stream" value="Connected" tone="positive" />
-      <Stat label="Last event" value="12s ago" />
+    <section className="stat-strip" aria-label="시장 요약">
+      <Stat label="평균 매수 프리미엄" value={formatPercent(averageBuyPremium)} tone="positive" />
+      <Stat label="최고 프리미엄" value={`${bestPair.asset} ${formatPercent(bestPair.buyPremiumRate)}`} tone="positive" />
+      <Stat label="24H 거래량 합계" value={`KRW ${formatVolume(totalVolume)}`} />
+      <Stat label="스트림" value="연결됨" tone="positive" />
+      <Stat label="최근 이벤트" value="12초 전" />
     </section>
   )
 }

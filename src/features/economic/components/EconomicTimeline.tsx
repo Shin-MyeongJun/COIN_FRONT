@@ -6,8 +6,8 @@ export function EconomicTimeline({ markers, compact = false }: { markers: Timeli
     <div className={compact ? 'timeline-list compact' : 'timeline-list'}>
       <div className="panel-header compact">
         <div>
-          <p className="eyebrow">Timeline</p>
-          <h2>Economic and news markers</h2>
+          <p className="eyebrow">타임라인</p>
+          <h2>경제 이벤트와 뉴스 마커</h2>
         </div>
       </div>
       {markers.map((marker) => (

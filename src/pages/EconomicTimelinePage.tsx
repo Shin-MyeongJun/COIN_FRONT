@@ -1,17 +1,19 @@
-import type { TimelineMarker } from '../features/chart/model/markerTypes'
+import { getMockTimelineMarkers } from '../features/economic/api/economicApi'
 import { EconomicTimeline } from '../features/economic/components/EconomicTimeline'
 
-export function EconomicTimelinePage({ markers }: { markers: TimelineMarker[] }) {
+const timelineMarkers = getMockTimelineMarkers()
+
+export function EconomicTimelinePage() {
   return (
     <main className="workspace-panel timeline-page">
       <div className="panel-header">
         <div>
-          <p className="eyebrow">Standalone timeline</p>
-          <h1>Economic events and market news</h1>
+          <p className="eyebrow">이벤트 타임라인</p>
+          <h1>경제 이벤트와 시장 뉴스</h1>
         </div>
-        <span className="pair-pill">Chart-ready marker model</span>
+        <span className="pair-pill">차트 오버레이용 마커</span>
       </div>
-      <EconomicTimeline markers={markers} />
+      <EconomicTimeline markers={timelineMarkers} />
     </main>
   )
 }

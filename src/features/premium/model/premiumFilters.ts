@@ -5,37 +5,37 @@ export interface PremiumFilters {
   keyword: string
   domesticExchange: string
   offshoreExchange: string
-  quoteCurrency: string
+  futuresExpiry: string
   minBuyPremiumRate: string
-  minSellPremiumRate: string
-  minVolume: string
-  freshnessSeconds: string
-  elevatedOnly: boolean
+  maxBuyPremiumRate: string
+  minPremiumStdDev24h: string
+  minPremiumAverage24h: string
+  minVolume24h: string
 }
 
 export const defaultPremiumFilters: PremiumFilters = {
   keyword: '',
-  domesticExchange: 'ALL',
-  offshoreExchange: 'ALL',
-  quoteCurrency: 'ALL',
+  domesticExchange: 'Upbit',
+  offshoreExchange: 'Binance Futures',
+  futuresExpiry: '무기한',
   minBuyPremiumRate: '',
-  minSellPremiumRate: '',
-  minVolume: '',
-  freshnessSeconds: '180',
-  elevatedOnly: false,
+  maxBuyPremiumRate: '',
+  minPremiumStdDev24h: '',
+  minPremiumAverage24h: '',
+  minVolume24h: '',
 }
 
 export interface PremiumFilterOptions {
   domesticExchanges: string[]
   offshoreExchanges: string[]
-  quoteCurrencies: string[]
+  futuresExpiries: string[]
 }
 
 export function getPremiumFilterOptions(pairs: PremiumPairView[]): PremiumFilterOptions {
   return {
-    domesticExchanges: ['ALL', ...Array.from(new Set(pairs.map((pair) => pair.domesticExchange)))],
-    offshoreExchanges: ['ALL', ...Array.from(new Set(pairs.map((pair) => pair.offshoreExchange)))],
-    quoteCurrencies: ['ALL', ...Array.from(new Set(pairs.map((pair) => pair.quoteCurrency)))],
+    domesticExchanges: Array.from(new Set(pairs.map((pair) => pair.domesticExchange))),
+    offshoreExchanges: Array.from(new Set(pairs.map((pair) => pair.offshoreExchange))),
+    futuresExpiries: Array.from(new Set(pairs.map((pair) => pair.futuresExpiry))),
   }
 }
 
@@ -52,9 +52,10 @@ export function filterAndSortPremiumPairs({
 }) {
   const keyword = filters.keyword.trim().toLowerCase()
   const minBuy = Number(filters.minBuyPremiumRate || Number.NEGATIVE_INFINITY)
-  const minSell = Number(filters.minSellPremiumRate || Number.NEGATIVE_INFINITY)
-  const minVolume = Number(filters.minVolume || 0) * 1_000_000_000
-  const freshnessLimit = Number(filters.freshnessSeconds || 0) * 1000
+  const maxBuy = Number(filters.maxBuyPremiumRate || Number.POSITIVE_INFINITY)
+  const minStdDev = Number(filters.minPremiumStdDev24h || Number.NEGATIVE_INFINITY)
+  const minAverage = Number(filters.minPremiumAverage24h || Number.NEGATIVE_INFINITY)
+  const minVolume = Number(filters.minVolume24h || 0) * 1_000_000_000
 
   return pairs
     .filter((pair) => {
@@ -62,18 +63,17 @@ export function filterAndSortPremiumPairs({
         !keyword ||
         pair.asset.toLowerCase().includes(keyword) ||
         pair.assetName.toLowerCase().includes(keyword)
-      const freshEnough = !freshnessLimit || Date.now() - pair.lastUpdatedAt <= freshnessLimit
 
       return (
         matchesKeyword &&
-        (filters.domesticExchange === 'ALL' || pair.domesticExchange === filters.domesticExchange) &&
-        (filters.offshoreExchange === 'ALL' || pair.offshoreExchange === filters.offshoreExchange) &&
-        (filters.quoteCurrency === 'ALL' || pair.quoteCurrency === filters.quoteCurrency) &&
+        pair.domesticExchange === filters.domesticExchange &&
+        pair.offshoreExchange === filters.offshoreExchange &&
+        pair.futuresExpiry === filters.futuresExpiry &&
         pair.buyPremiumRate >= minBuy &&
-        pair.sellPremiumRate >= minSell &&
-        pair.volume >= minVolume &&
-        freshEnough &&
-        (!filters.elevatedOnly || pair.buyPremiumRate >= 3.5 || pair.sellPremiumRate >= 3.5)
+        pair.buyPremiumRate <= maxBuy &&
+        pair.premiumStdDev24h >= minStdDev &&
+        pair.premiumAverage24h >= minAverage &&
+        pair.volume24h >= minVolume
       )
     })
     .sort((first, second) => {

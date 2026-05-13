@@ -25,16 +25,16 @@ export function PremiumFilterBar({
   return (
     <form className="filter-bar" onSubmit={(event) => event.preventDefault()}>
       <label className="field wide">
-        <span>Search</span>
+        <span>코인명</span>
         <input
           type="search"
           value={filters.keyword}
           onChange={onTextInput('keyword')}
-          placeholder="BTC, Ethereum, XRP"
+          placeholder="BTC, 비트코인, XRP"
         />
       </label>
       <label className="field">
-        <span>Domestic</span>
+        <span>국내 거래소</span>
         <select value={filters.domesticExchange} onChange={onSelectInput('domesticExchange')}>
           {options.domesticExchanges.map((exchange) => (
             <option key={exchange}>{exchange}</option>
@@ -42,7 +42,7 @@ export function PremiumFilterBar({
         </select>
       </label>
       <label className="field">
-        <span>Offshore</span>
+        <span>해외 페어</span>
         <select value={filters.offshoreExchange} onChange={onSelectInput('offshoreExchange')}>
           {options.offshoreExchanges.map((exchange) => (
             <option key={exchange}>{exchange}</option>
@@ -50,63 +50,54 @@ export function PremiumFilterBar({
         </select>
       </label>
       <label className="field">
-        <span>Quote</span>
-        <select value={filters.quoteCurrency} onChange={onSelectInput('quoteCurrency')}>
-          {options.quoteCurrencies.map((currency) => (
-            <option key={currency}>{currency}</option>
+        <span>선물 기한</span>
+        <select value={filters.futuresExpiry} onChange={onSelectInput('futuresExpiry')}>
+          {options.futuresExpiries.map((expiry) => (
+            <option key={expiry}>{expiry}</option>
           ))}
         </select>
       </label>
       <label className="field">
-        <span>Min buy %</span>
+        <span>매수 이상</span>
         <input
           type="number"
-          min="0"
           step="0.1"
           value={filters.minBuyPremiumRate}
           onChange={onTextInput('minBuyPremiumRate')}
-          placeholder="3.5"
-        />
-      </label>
-      <label className="field">
-        <span>Min sell %</span>
-        <input
-          type="number"
-          min="0"
-          step="0.1"
-          value={filters.minSellPremiumRate}
-          onChange={onTextInput('minSellPremiumRate')}
           placeholder="3.0"
         />
       </label>
       <label className="field">
-        <span>Min vol B</span>
+        <span>매수 이하</span>
+        <input
+          type="number"
+          step="0.1"
+          value={filters.maxBuyPremiumRate}
+          onChange={onTextInput('maxBuyPremiumRate')}
+          placeholder="5.0"
+        />
+      </label>
+      <label className="field">
+        <span>표준편차 이상</span>
+        <input
+          type="number"
+          min="0"
+          step="0.1"
+          value={filters.minPremiumStdDev24h}
+          onChange={onTextInput('minPremiumStdDev24h')}
+          placeholder="0.5"
+        />
+      </label>
+      <label className="field">
+        <span>거래량 이상(B)</span>
         <input
           type="number"
           min="0"
           step="10"
-          value={filters.minVolume}
-          onChange={onTextInput('minVolume')}
+          value={filters.minVolume24h}
+          onChange={onTextInput('minVolume24h')}
           placeholder="100"
         />
-      </label>
-      <label className="field">
-        <span>Fresh s</span>
-        <input
-          type="number"
-          min="0"
-          step="30"
-          value={filters.freshnessSeconds}
-          onChange={onTextInput('freshnessSeconds')}
-        />
-      </label>
-      <label className="toggle-field">
-        <input
-          type="checkbox"
-          checked={filters.elevatedOnly}
-          onChange={(event) => onFilterChange('elevatedOnly', event.target.checked)}
-        />
-        <span>Elevated only</span>
       </label>
     </form>
   )

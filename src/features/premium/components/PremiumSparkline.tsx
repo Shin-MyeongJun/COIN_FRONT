@@ -10,7 +10,7 @@ export function PremiumSparkline({ values }: { values: number[] }) {
     .join(' ')
 
   return (
-    <svg className="sparkline" viewBox="0 0 90 32" role="img" aria-label="Premium trend sparkline">
+    <svg className="sparkline" viewBox="0 0 90 32" role="img" aria-label="프리미엄 추세 미니 차트">
       <polyline points={points} />
     </svg>
   )

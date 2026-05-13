@@ -3,7 +3,6 @@ import type { SortDirection } from '../../../shared/types/common'
 import { formatVolume } from '../../../shared/lib/formatNumber'
 import { formatPercent } from '../../../shared/lib/formatPremium'
 import { formatPrice } from '../../../shared/lib/formatPrice'
-import { formatRelativeTime } from '../../../shared/lib/formatTime'
 import { EmptyState } from '../../../shared/ui/EmptyState'
 import { premiumSortLabels, type PremiumPairView, type PremiumSortKey } from '../model/premiumViewTypes'
 import { PremiumMetricCell } from './PremiumMetricCell'
@@ -25,8 +24,8 @@ export function PremiumTable({
   if (pairs.length === 0) {
     return (
       <EmptyState
-        title="No premium pairs match the filters."
-        message="Relax one or two thresholds to bring live rows back into view."
+        title="조건에 맞는 프리미엄 페어가 없습니다."
+        message="프리미엄, 표준편차, 평균, 거래량 조건을 조금 낮춰보세요."
       />
     )
   }
@@ -36,57 +35,66 @@ export function PremiumTable({
       <table className="premium-table">
         <thead>
           <tr>
+            <th>#</th>
             <SortableHeader id="asset" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
-              Asset
+              자산
             </SortableHeader>
-            <th>Domestic</th>
-            <th>Offshore</th>
-            <th>Domestic bid</th>
-            <th>Offshore ask</th>
+            <SortableHeader id="domesticCurrentPrice" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
+              현재가 1
+            </SortableHeader>
+            <SortableHeader id="offshoreCurrentPrice" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
+              현재가 2
+            </SortableHeader>
             <SortableHeader id="buyPremiumRate" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
-              Buy Premium
+              매수 프리미엄
             </SortableHeader>
-            <th>Domestic ask</th>
-            <th>Offshore bid</th>
             <SortableHeader id="sellPremiumRate" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
-              Sell Premium
+              매도 프리미엄
             </SortableHeader>
-            <SortableHeader id="oneHourChangeRate" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
-              1h
+            <SortableHeader id="premiumStdDev24h" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
+              24H 표준편차
             </SortableHeader>
-            <SortableHeader id="twentyFourHourChangeRate" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
-              24h
+            <SortableHeader id="premiumAverage24h" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
+              24H 평균
             </SortableHeader>
-            <SortableHeader id="volume" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
-              Volume
+            <SortableHeader id="volume24h" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
+              거래량
             </SortableHeader>
-            <SortableHeader id="lastUpdatedAt" activeKey={sortKey} direction={sortDirection} onSort={onSort}>
-              Updated
-            </SortableHeader>
-            <th>Spark</th>
+            <th>스파크라인</th>
           </tr>
         </thead>
         <tbody>
-          {pairs.map((pair) => (
+          {pairs.map((pair, index) => (
             <tr key={`${pair.asset}-${pair.domesticExchange}-${pair.offshoreExchange}`} onClick={() => onPairSelect(pair)}>
+              <td>{index + 1}</td>
               <td>
-                <div className="asset-cell">
-                  <strong>{pair.asset}</strong>
-                  <span>{pair.assetName}</span>
+                <div className="asset-cell asset-cell-inline">
+                  <span className="coin-symbol-badge">{pair.asset.slice(0, 1)}</span>
+                  <span>
+                    <strong>{pair.asset}</strong>
+                    <small>{pair.assetName}</small>
+                  </span>
                 </div>
               </td>
-              <td>{pair.domesticExchange}</td>
-              <td>{pair.offshoreExchange}</td>
-              <td>{formatPrice(pair.domesticBid)}</td>
-              <td>{formatPrice(pair.offshoreAsk)}</td>
+              <td>
+                <PriceCell
+                  label={pair.domesticExchange}
+                  value={pair.domesticCurrentPrice}
+                  currency={pair.domesticPriceCurrency}
+                />
+              </td>
+              <td>
+                <PriceCell
+                  label={`${pair.offshoreExchange} · ${pair.futuresExpiry}`}
+                  value={pair.offshoreCurrentPrice}
+                  currency={pair.offshorePriceCurrency}
+                />
+              </td>
               <td><PremiumMetricCell value={pair.buyPremiumRate} side="Buy" /></td>
-              <td>{formatPrice(pair.domesticAsk)}</td>
-              <td>{formatPrice(pair.offshoreBid)}</td>
               <td><PremiumMetricCell value={pair.sellPremiumRate} side="Sell" /></td>
-              <td><PercentCell value={pair.oneHourChangeRate} /></td>
-              <td><PercentCell value={pair.twentyFourHourChangeRate} /></td>
-              <td>KRW {formatVolume(pair.volume)}</td>
-              <td>{formatRelativeTime(pair.lastUpdatedAt)}</td>
+              <td>{pair.premiumStdDev24h.toFixed(2)}%</td>
+              <td><PercentCell value={pair.premiumAverage24h} /></td>
+              <td>KRW {formatVolume(pair.volume24h)}</td>
               <td><PremiumSparkline values={pair.sparkline} /></td>
             </tr>
           ))}
@@ -110,12 +118,12 @@ function SortableHeader({
   children: ReactNode
 }) {
   const active = id === activeKey
-  const marker = active ? (direction === 'asc' ? 'up' : 'down') : ''
+  const marker = active ? (direction === 'asc' ? '오름차순' : '내림차순') : ''
 
   return (
     <th>
       <button
-        aria-label={`Sort by ${premiumSortLabels[id]}`}
+        aria-label={`${premiumSortLabels[id]} 기준 정렬`}
         className={active ? 'sort-button active' : 'sort-button'}
         type="button"
         onClick={() => onSort(id)}
@@ -129,4 +137,21 @@ function SortableHeader({
 
 function PercentCell({ value }: { value: number }) {
   return <span className={value >= 0 ? 'text-positive' : 'text-negative'}>{formatPercent(value)}</span>
+}
+
+function PriceCell({
+  label,
+  value,
+  currency,
+}: {
+  label: string
+  value: number
+  currency: 'KRW' | 'USD'
+}) {
+  return (
+    <div className="price-cell">
+      <strong>{formatPrice(value, currency)}</strong>
+      <span>{label}</span>
+    </div>
+  )
 }
