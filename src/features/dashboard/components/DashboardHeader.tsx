@@ -1,19 +1,10 @@
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { ThemeToggle } from '../../../shared/ui/ThemeToggle'
 
-const NAV_ITEMS = [
-  { label: '대시보드', path: '/' },
-  { label: '마켓', path: '/market' },
-  { label: '경제지표', path: '/economic' },
-  { label: '관심 목록', path: '/watchlist' },
-  { label: '알림', path: '/alerts' },
-  { label: 'API 문서', path: '/api-docs' },
-]
-
-// NOTE: ticker-strip(평균 김프 등)은 GlobalIndicatorBar와 중복되어 제거. 헤더라인은 GlobalIndicatorBar 단일 소스.
+// NOTE: 주 내비게이션은 사이드바(AppLayout)로 단일화. 상단은 브랜드/검색/테마/프로필만 남김.
+//       ticker-strip(평균 김프 등)은 GlobalIndicatorBar와 중복되어 제거됨 — 헤더라인은 GlobalIndicatorBar 단일 소스.
 export function DashboardHeader() {
   const navigate = useNavigate()
-  const location = useLocation()
 
   return (
     <header className="topbar">
@@ -22,6 +13,12 @@ export function DashboardHeader() {
           <span className="brand-mark" aria-hidden="true" />
           CoinData
         </button>
+
+        <label className="global-search">
+          <span className="visually-hidden">코인 검색</span>
+          <input type="search" placeholder="코인 검색 (예: BTC, 이더리움)" />
+          <kbd>/</kbd>
+        </label>
 
         <div className="header-actions">
           <ThemeToggle />
@@ -33,34 +30,6 @@ export function DashboardHeader() {
           <button className="profile-button" type="button" aria-label="사용자 메뉴">U</button>
         </div>
       </div>
-
-      <div className="topnav-row">
-        <nav className="nav-actions" aria-label="주요 화면 이동">
-          {NAV_ITEMS.map((item) => (
-            <NavButton
-              key={item.path}
-              active={location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path))}
-              label={item.label}
-              onClick={() => navigate(item.path)}
-            />
-          ))}
-        </nav>
-
-        <label className="global-search">
-          <span className="visually-hidden">코인 검색</span>
-          <input type="search" placeholder="코인 검색 (예: BTC, 이더리움)" />
-          <kbd>/</kbd>
-        </label>
-      </div>
     </header>
-  )
-}
-
-function NavButton({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
-  return (
-    <button className={active ? 'active' : ''} type="button" onClick={onClick}>
-      <span aria-hidden="true" />
-      {label}
-    </button>
   )
 }
