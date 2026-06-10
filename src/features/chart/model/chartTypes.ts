@@ -30,6 +30,12 @@ export interface LwLinePoint {
   value: number
 }
 
+/** A single live update applied imperatively to the candle + volume series. */
+export interface LiveCandleUpdate {
+  candle: LwCandlePoint
+  volume: LwVolumePoint
+}
+
 export interface OhlcvTooltip {
   time: number
   open: number

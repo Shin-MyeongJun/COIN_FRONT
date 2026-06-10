@@ -11,7 +11,14 @@
       "Bash(npx vite *)",
       "Bash(Start-Sleep -Seconds 3)",
       "Bash(Select-Object -First 3)",
-      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); deps = {**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}; print\\('zod:', 'zod' in deps\\); print\\('react-hook-form:', 'react-hook-form' in deps\\)\")"
+      "Bash(python -c \"import json,sys; d=json.load\\(sys.stdin\\); deps = {**d.get\\('dependencies',{}\\), **d.get\\('devDependencies',{}\\)}; print\\('zod:', 'zod' in deps\\); print\\('react-hook-form:', 'react-hook-form' in deps\\)\")",
+      "Bash(echo \"exit: $?\")",
+      "Bash(findstr /I \"Watchlist Alert\")",
+      "PowerShell(npx tsc --noEmit)",
+      "PowerShell(npm run *)",
+      "Bash(echo \"exit=$?\")",
+      "Bash(npx vitest *)",
+      "Bash(echo \"exit:$?\")"
     ]
   }
 }

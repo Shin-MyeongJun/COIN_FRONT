@@ -11,15 +11,21 @@ import {
 } from 'lightweight-charts'
 import { useEffect, useRef, useState } from 'react'
 import { useThemeStore } from '../../../shared/store/themeStore'
-import type { IndicatorOverlayState, LwCandlePoint, LwLinePoint, LwVolumePoint, OhlcvTooltip } from '../model/chartTypes'
+import type { IndicatorOverlayState, LiveCandleUpdate, LwCandlePoint, LwLinePoint, LwVolumePoint, OhlcvTooltip } from '../model/chartTypes'
 
 type Props = {
   candles: LwCandlePoint[]
   volumes: LwVolumePoint[]
   height?: number
   overlays?: Partial<IndicatorOverlayState>
-  enableLiveUpdate?: boolean
+  /** Latest live candle update, applied imperatively via series.update(). */
+  liveCandle?: LiveCandleUpdate | null
   onNearLeftEdge?: () => void
+  /**
+   * 백엔드 composition.indicators 에서 매핑한 EMA overlay.
+   * 제공되면 그대로 사용하고, 없으면 candles 로 내부 계산(mock/legacy)으로 폴백.
+   */
+  indicators?: { ema20?: LwLinePoint[]; ema50?: LwLinePoint[] }
 }
 
 function calcEMA(data: LwCandlePoint[], period: number): LwLinePoint[] {
@@ -46,8 +52,9 @@ export function LwCandleChart({
   volumes,
   height = 420,
   overlays,
-  enableLiveUpdate = false,
+  liveCandle,
   onNearLeftEdge,
+  indicators,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
@@ -55,7 +62,6 @@ export function LwCandleChart({
   const volumeSeriesRef = useRef<ISeriesApi<SeriesType> | null>(null)
   const ema20SeriesRef = useRef<ISeriesApi<SeriesType> | null>(null)
   const ema50SeriesRef = useRef<ISeriesApi<SeriesType> | null>(null)
-  const candlesRef = useRef(candles)
   const nearEdgeRef = useRef(false)
 
   const [tooltip, setTooltip] = useState<OhlcvTooltip | null>(null)
@@ -150,49 +156,29 @@ export function LwCandleChart({
 
   // Update series data when candles change
   useEffect(() => {
-    candlesRef.current = candles
     candleSeriesRef.current?.setData(candles)
     volumeSeriesRef.current?.setData(volumes)
 
     const showEma20 = overlays?.ema20 ?? true
     const showEma50 = overlays?.ema50 ?? false
 
-    ema20SeriesRef.current?.setData(showEma20 ? calcEMA(candles, 20) : [])
-    ema50SeriesRef.current?.setData(showEma50 ? calcEMA(candles, 50) : [])
+    // 백엔드 지표가 있으면 사용, 없으면 candles 로 내부 계산(mock/legacy 폴백).
+    const ema20Data = indicators?.ema20 ?? calcEMA(candles, 20)
+    const ema50Data = indicators?.ema50 ?? calcEMA(candles, 50)
+
+    ema20SeriesRef.current?.setData(showEma20 ? ema20Data : [])
+    ema50SeriesRef.current?.setData(showEma50 ? ema50Data : [])
 
     chartRef.current?.timeScale().fitContent()
-  }, [candles, volumes, overlays])
+  }, [candles, volumes, overlays, indicators])
 
-  // Mock SSE live update
+  // Live update — apply the latest streamed candle to the series imperatively.
+  // The source (mock simulation vs. real SSE) is owned by useLiveCandle.
   useEffect(() => {
-    if (!enableLiveUpdate) return
-    const id = setInterval(() => {
-      const data = candlesRef.current
-      if (!data.length || !candleSeriesRef.current || !volumeSeriesRef.current) return
-      const last = data[data.length - 1]
-      const delta = (Math.random() - 0.5) * last.close * 0.002
-      const newClose = Math.max(1, Math.round(last.close + delta))
-      const updated: LwCandlePoint = {
-        time: last.time,
-        open: last.open,
-        high: Math.max(last.high, newClose),
-        low: Math.min(last.low, newClose),
-        close: newClose,
-      }
-      candleSeriesRef.current.update(updated)
-      volumeSeriesRef.current.update({
-        time: last.time,
-        value: Math.abs((Math.random() - 0.5) * 600_000) + 100_000,
-        color: newClose >= last.open ? 'rgba(15, 139, 95, 0.5)' : 'rgba(201, 72, 69, 0.5)',
-      })
-      // patch last candle in ref
-      candlesRef.current = [
-        ...data.slice(0, -1),
-        updated,
-      ]
-    }, 2000)
-    return () => clearInterval(id)
-  }, [enableLiveUpdate])
+    if (!liveCandle || !candleSeriesRef.current || !volumeSeriesRef.current) return
+    candleSeriesRef.current.update(liveCandle.candle)
+    volumeSeriesRef.current.update(liveCandle.volume)
+  }, [liveCandle])
 
   const p = (n: number) => n.toLocaleString('ko-KR')
 

@@ -1,8 +1,26 @@
-import { getJson } from '../../../shared/api/httpClient'
-import type { PremiumPairView } from '../model/premiumViewTypes'
-import type { PremiumRankingDto, PremiumSnapshotDto, PremiumTimeSeriesDto } from './premiumTypes'
+/**
+ * Premium feature API surface.
+ *
+ * Layering:
+ *   - Components/pages call only `getPremiumRankingView` / `getPremiumSnapshotView`
+ *     / `getPremiumSeriesView`. They never see raw DTOs and never know whether
+ *     the response came from mock data or the live backend.
+ *   - `env.useMock` flips the source in this file only. UI code is mock-agnostic.
+ *   - DTO ↔ ViewModel conversion lives in `../model/premiumMappers`.
+ *
+ * The raw `fetchPremium*` calls are still exported for callers (or tests) that
+ * need the unmapped DTO shape.
+ */
 
-const now = Date.now()
+import { getJson } from '../../../shared/api/httpClient'
+import { env } from '../../../shared/config/env'
+import { toPremiumPairViews } from '../model/premiumMappers'
+import type { PremiumPairView } from '../model/premiumViewTypes'
+import type {
+  PremiumRankingDto,
+  PremiumSnapshotDto,
+  PremiumTimeSeriesDto,
+} from './premiumTypes'
 
 export const premiumApiPaths = {
   ranking: '/api/v1/market/premium/ranking',
@@ -10,194 +28,9 @@ export const premiumApiPaths = {
   series: '/api/v1/market/premium/series',
 }
 
-export function getMockPremiumPairs(): PremiumPairView[] {
-  return [
-    {
-      asset: 'BTC',
-      assetName: '비트코인',
-      domesticExchange: 'Upbit',
-      offshoreExchange: 'Binance Futures',
-      offshoreMarketType: 'USDT-M 선물',
-      futuresExpiry: '무기한',
-      domesticPriceCurrency: 'KRW',
-      offshorePriceCurrency: 'USD',
-      domesticCurrentPrice: 146_350_000,
-      offshoreCurrentPrice: 101_820,
-      domesticBid: 146_320_000,
-      offshoreAsk: 101_805,
-      buyPremiumRate: 4.43,
-      domesticAsk: 146_370_000,
-      offshoreBid: 101_790,
-      sellPremiumRate: 4.51,
-      premiumStdDev24h: 0.62,
-      premiumAverage24h: 3.88,
-      volume24h: 1_842_000_000_000,
-      lastUpdatedAt: now - 12_000,
-      sparkline: [3.92, 4.04, 4.16, 4.08, 4.25, 4.31, 4.43],
-    },
-    {
-      asset: 'ETH',
-      assetName: '이더리움',
-      domesticExchange: 'Upbit',
-      offshoreExchange: 'Binance Futures',
-      offshoreMarketType: 'USDT-M 선물',
-      futuresExpiry: '무기한',
-      domesticPriceCurrency: 'KRW',
-      offshorePriceCurrency: 'USD',
-      domesticCurrentPrice: 7_817_000,
-      offshoreCurrentPrice: 5_460,
-      domesticBid: 7_815_000,
-      offshoreAsk: 5_459,
-      buyPremiumRate: 3.98,
-      domesticAsk: 7_819_000,
-      offshoreBid: 5_456,
-      sellPremiumRate: 4.2,
-      premiumStdDev24h: 0.48,
-      premiumAverage24h: 3.61,
-      volume24h: 932_000_000_000,
-      lastUpdatedAt: now - 22_000,
-      sparkline: [4.31, 4.16, 4.08, 4.02, 3.94, 4.01, 3.98],
-    },
-    {
-      asset: 'SOL',
-      assetName: '솔라나',
-      domesticExchange: 'Upbit',
-      offshoreExchange: 'Binance Futures',
-      offshoreMarketType: 'USDT-M 선물',
-      futuresExpiry: '무기한',
-      domesticPriceCurrency: 'KRW',
-      offshorePriceCurrency: 'USD',
-      domesticCurrentPrice: 242_500,
-      offshoreCurrentPrice: 169.35,
-      domesticBid: 242_400,
-      offshoreAsk: 169.31,
-      buyPremiumRate: 3.55,
-      domesticAsk: 242_600,
-      offshoreBid: 169.27,
-      sellPremiumRate: 3.74,
-      premiumStdDev24h: 0.71,
-      premiumAverage24h: 3.22,
-      volume24h: 386_000_000_000,
-      lastUpdatedAt: now - 18_000,
-      sparkline: [3.02, 3.14, 3.2, 3.34, 3.39, 3.48, 3.55],
-    },
-    {
-      asset: 'XRP',
-      assetName: 'XRP',
-      domesticExchange: 'Upbit',
-      offshoreExchange: 'Binance Futures',
-      offshoreMarketType: 'USDT-M 선물',
-      futuresExpiry: '무기한',
-      domesticPriceCurrency: 'KRW',
-      offshorePriceCurrency: 'USD',
-      domesticCurrentPrice: 4_066,
-      offshoreCurrentPrice: 2.84,
-      domesticBid: 4_065,
-      offshoreAsk: 2.84,
-      buyPremiumRate: 3.23,
-      domesticAsk: 4_067,
-      offshoreBid: 2.83,
-      sellPremiumRate: 3.51,
-      premiumStdDev24h: 0.39,
-      premiumAverage24h: 3.02,
-      volume24h: 512_000_000_000,
-      lastUpdatedAt: now - 45_000,
-      sparkline: [3.42, 3.36, 3.21, 3.18, 3.27, 3.25, 3.23],
-    },
-    {
-      asset: 'DOGE',
-      assetName: '도지코인',
-      domesticExchange: 'Upbit',
-      offshoreExchange: 'Binance Futures',
-      offshoreMarketType: 'USDT-M 선물',
-      futuresExpiry: '무기한',
-      domesticPriceCurrency: 'KRW',
-      offshorePriceCurrency: 'USD',
-      domesticCurrentPrice: 423,
-      offshoreCurrentPrice: 0.295,
-      domesticBid: 422.8,
-      offshoreAsk: 0.295,
-      buyPremiumRate: 2.95,
-      domesticAsk: 423.1,
-      offshoreBid: 0.294,
-      sellPremiumRate: 3.25,
-      premiumStdDev24h: 0.34,
-      premiumAverage24h: 2.86,
-      volume24h: 188_000_000_000,
-      lastUpdatedAt: now - 62_000,
-      sparkline: [3.08, 3.12, 3.0, 2.97, 2.88, 2.92, 2.95],
-    },
-    {
-      asset: 'ADA',
-      assetName: '카르다노',
-      domesticExchange: 'Upbit',
-      offshoreExchange: 'Binance Futures',
-      offshoreMarketType: 'USDT-M 선물',
-      futuresExpiry: '무기한',
-      domesticPriceCurrency: 'KRW',
-      offshorePriceCurrency: 'USD',
-      domesticCurrentPrice: 1_383,
-      offshoreCurrentPrice: 0.965,
-      domesticBid: 1_382,
-      offshoreAsk: 0.965,
-      buyPremiumRate: 2.75,
-      domesticAsk: 1_384,
-      offshoreBid: 0.963,
-      sellPremiumRate: 3.13,
-      premiumStdDev24h: 0.31,
-      premiumAverage24h: 2.62,
-      volume24h: 76_000_000_000,
-      lastUpdatedAt: now - 88_000,
-      sparkline: [2.55, 2.62, 2.71, 2.68, 2.79, 2.77, 2.75],
-    },
-    {
-      asset: 'AVAX',
-      assetName: '아발란체',
-      domesticExchange: 'Upbit',
-      offshoreExchange: 'Binance Futures',
-      offshoreMarketType: 'USDT-M 선물',
-      futuresExpiry: '무기한',
-      domesticPriceCurrency: 'KRW',
-      offshorePriceCurrency: 'USD',
-      domesticCurrentPrice: 48_835,
-      offshoreCurrentPrice: 34.08,
-      domesticBid: 48_820,
-      offshoreAsk: 34.07,
-      buyPremiumRate: 2.58,
-      domesticAsk: 48_850,
-      offshoreBid: 34.04,
-      sellPremiumRate: 2.91,
-      premiumStdDev24h: 0.29,
-      premiumAverage24h: 2.41,
-      volume24h: 92_000_000_000,
-      lastUpdatedAt: now - 132_000,
-      sparkline: [2.85, 2.81, 2.76, 2.69, 2.62, 2.6, 2.58],
-    },
-    {
-      asset: 'BTC',
-      assetName: '비트코인',
-      domesticExchange: 'Upbit',
-      offshoreExchange: 'Binance Futures',
-      offshoreMarketType: 'USDT-M 선물',
-      futuresExpiry: '2026-06 만기',
-      domesticPriceCurrency: 'KRW',
-      offshorePriceCurrency: 'USD',
-      domesticCurrentPrice: 146_350_000,
-      offshoreCurrentPrice: 101_420,
-      domesticBid: 146_320_000,
-      offshoreAsk: 101_405,
-      buyPremiumRate: 4.86,
-      domesticAsk: 146_370_000,
-      offshoreBid: 101_390,
-      sellPremiumRate: 4.94,
-      premiumStdDev24h: 0.77,
-      premiumAverage24h: 4.18,
-      volume24h: 428_000_000_000,
-      lastUpdatedAt: now - 26_000,
-      sparkline: [4.2, 4.25, 4.31, 4.55, 4.7, 4.82, 4.86],
-    },
-  ]
-}
+// ─────────────────────────────────────────────────────────────────────────────
+// Raw backend calls (DTO in, DTO out).
+// ─────────────────────────────────────────────────────────────────────────────
 
 export function fetchPremiumRanking(limit = 10) {
   return getJson<PremiumRankingDto[]>(premiumApiPaths.ranking, { n: limit })
@@ -207,13 +40,259 @@ export function fetchPremiumSnapshot(base: string) {
   return getJson<PremiumSnapshotDto[]>(premiumApiPaths.snapshot(base))
 }
 
-export function fetchPremiumSeries(params: {
+export interface PremiumSeriesParams {
   baseExchangeId: number
   compareExchangeId: number
   symbol: string
   bucketSeconds: number
   fromTs: number
   toTs: number
-}) {
-  return getJson<PremiumTimeSeriesDto[]>(premiumApiPaths.series, params)
+}
+
+export function fetchPremiumSeries(params: PremiumSeriesParams) {
+  return getJson<PremiumTimeSeriesDto[]>(premiumApiPaths.series, { ...params })
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Mock data
+//
+// Kept in module scope so `now` is captured once per page load — every mock
+// ranking call returns the same `lastUpdatedAt`, which keeps React Query's
+// structural-equality check happy and avoids gratuitous re-renders.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const mockNow = Date.now()
+
+const MOCK_PREMIUM_PAIRS: PremiumPairView[] = [
+  {
+    asset: 'BTC',
+    assetName: '비트코인',
+    domesticExchange: 'Upbit',
+    offshoreExchange: 'Binance Futures',
+    offshoreMarketType: 'USDT-M 선물',
+    futuresExpiry: '무기한',
+    domesticPriceCurrency: 'KRW',
+    offshorePriceCurrency: 'USD',
+    domesticCurrentPrice: 146_350_000,
+    offshoreCurrentPrice: 101_820,
+    domesticBid: 146_320_000,
+    offshoreAsk: 101_805,
+    buyPremiumRate: 4.43,
+    domesticAsk: 146_370_000,
+    offshoreBid: 101_790,
+    sellPremiumRate: 4.51,
+    premiumStdDev24h: 0.62,
+    premiumAverage24h: 3.88,
+    volume24h: 1_842_000_000_000,
+    lastUpdatedAt: mockNow - 12_000,
+    sparkline: [3.92, 4.04, 4.16, 4.08, 4.25, 4.31, 4.43],
+  },
+  {
+    asset: 'ETH',
+    assetName: '이더리움',
+    domesticExchange: 'Upbit',
+    offshoreExchange: 'Binance Futures',
+    offshoreMarketType: 'USDT-M 선물',
+    futuresExpiry: '무기한',
+    domesticPriceCurrency: 'KRW',
+    offshorePriceCurrency: 'USD',
+    domesticCurrentPrice: 7_817_000,
+    offshoreCurrentPrice: 5_460,
+    domesticBid: 7_815_000,
+    offshoreAsk: 5_459,
+    buyPremiumRate: 3.98,
+    domesticAsk: 7_819_000,
+    offshoreBid: 5_456,
+    sellPremiumRate: 4.2,
+    premiumStdDev24h: 0.48,
+    premiumAverage24h: 3.61,
+    volume24h: 932_000_000_000,
+    lastUpdatedAt: mockNow - 22_000,
+    sparkline: [4.31, 4.16, 4.08, 4.02, 3.94, 4.01, 3.98],
+  },
+  {
+    asset: 'SOL',
+    assetName: '솔라나',
+    domesticExchange: 'Upbit',
+    offshoreExchange: 'Binance Futures',
+    offshoreMarketType: 'USDT-M 선물',
+    futuresExpiry: '무기한',
+    domesticPriceCurrency: 'KRW',
+    offshorePriceCurrency: 'USD',
+    domesticCurrentPrice: 242_500,
+    offshoreCurrentPrice: 169.35,
+    domesticBid: 242_400,
+    offshoreAsk: 169.31,
+    buyPremiumRate: 3.55,
+    domesticAsk: 242_600,
+    offshoreBid: 169.27,
+    sellPremiumRate: 3.74,
+    premiumStdDev24h: 0.71,
+    premiumAverage24h: 3.22,
+    volume24h: 386_000_000_000,
+    lastUpdatedAt: mockNow - 18_000,
+    sparkline: [3.02, 3.14, 3.2, 3.34, 3.39, 3.48, 3.55],
+  },
+  {
+    asset: 'XRP',
+    assetName: 'XRP',
+    domesticExchange: 'Upbit',
+    offshoreExchange: 'Binance Futures',
+    offshoreMarketType: 'USDT-M 선물',
+    futuresExpiry: '무기한',
+    domesticPriceCurrency: 'KRW',
+    offshorePriceCurrency: 'USD',
+    domesticCurrentPrice: 4_066,
+    offshoreCurrentPrice: 2.84,
+    domesticBid: 4_065,
+    offshoreAsk: 2.84,
+    buyPremiumRate: 3.23,
+    domesticAsk: 4_067,
+    offshoreBid: 2.83,
+    sellPremiumRate: 3.51,
+    premiumStdDev24h: 0.39,
+    premiumAverage24h: 3.02,
+    volume24h: 512_000_000_000,
+    lastUpdatedAt: mockNow - 45_000,
+    sparkline: [3.42, 3.36, 3.21, 3.18, 3.27, 3.25, 3.23],
+  },
+  {
+    asset: 'DOGE',
+    assetName: '도지코인',
+    domesticExchange: 'Upbit',
+    offshoreExchange: 'Binance Futures',
+    offshoreMarketType: 'USDT-M 선물',
+    futuresExpiry: '무기한',
+    domesticPriceCurrency: 'KRW',
+    offshorePriceCurrency: 'USD',
+    domesticCurrentPrice: 423,
+    offshoreCurrentPrice: 0.295,
+    domesticBid: 422.8,
+    offshoreAsk: 0.295,
+    buyPremiumRate: 2.95,
+    domesticAsk: 423.1,
+    offshoreBid: 0.294,
+    sellPremiumRate: 3.25,
+    premiumStdDev24h: 0.34,
+    premiumAverage24h: 2.86,
+    volume24h: 188_000_000_000,
+    lastUpdatedAt: mockNow - 62_000,
+    sparkline: [3.08, 3.12, 3.0, 2.97, 2.88, 2.92, 2.95],
+  },
+  {
+    asset: 'ADA',
+    assetName: '카르다노',
+    domesticExchange: 'Upbit',
+    offshoreExchange: 'Binance Futures',
+    offshoreMarketType: 'USDT-M 선물',
+    futuresExpiry: '무기한',
+    domesticPriceCurrency: 'KRW',
+    offshorePriceCurrency: 'USD',
+    domesticCurrentPrice: 1_383,
+    offshoreCurrentPrice: 0.965,
+    domesticBid: 1_382,
+    offshoreAsk: 0.965,
+    buyPremiumRate: 2.75,
+    domesticAsk: 1_384,
+    offshoreBid: 0.963,
+    sellPremiumRate: 3.13,
+    premiumStdDev24h: 0.31,
+    premiumAverage24h: 2.62,
+    volume24h: 76_000_000_000,
+    lastUpdatedAt: mockNow - 88_000,
+    sparkline: [2.55, 2.62, 2.71, 2.68, 2.79, 2.77, 2.75],
+  },
+  {
+    asset: 'AVAX',
+    assetName: '아발란체',
+    domesticExchange: 'Upbit',
+    offshoreExchange: 'Binance Futures',
+    offshoreMarketType: 'USDT-M 선물',
+    futuresExpiry: '무기한',
+    domesticPriceCurrency: 'KRW',
+    offshorePriceCurrency: 'USD',
+    domesticCurrentPrice: 48_835,
+    offshoreCurrentPrice: 34.08,
+    domesticBid: 48_820,
+    offshoreAsk: 34.07,
+    buyPremiumRate: 2.58,
+    domesticAsk: 48_850,
+    offshoreBid: 34.04,
+    sellPremiumRate: 2.91,
+    premiumStdDev24h: 0.29,
+    premiumAverage24h: 2.41,
+    volume24h: 92_000_000_000,
+    lastUpdatedAt: mockNow - 132_000,
+    sparkline: [2.85, 2.81, 2.76, 2.69, 2.62, 2.6, 2.58],
+  },
+  {
+    asset: 'BTC',
+    assetName: '비트코인',
+    domesticExchange: 'Upbit',
+    offshoreExchange: 'Binance Futures',
+    offshoreMarketType: 'USDT-M 선물',
+    futuresExpiry: '2026-06 만기',
+    domesticPriceCurrency: 'KRW',
+    offshorePriceCurrency: 'USD',
+    domesticCurrentPrice: 146_350_000,
+    offshoreCurrentPrice: 101_420,
+    domesticBid: 146_320_000,
+    offshoreAsk: 101_405,
+    buyPremiumRate: 4.86,
+    domesticAsk: 146_370_000,
+    offshoreBid: 101_390,
+    sellPremiumRate: 4.94,
+    premiumStdDev24h: 0.77,
+    premiumAverage24h: 4.18,
+    volume24h: 428_000_000_000,
+    lastUpdatedAt: mockNow - 26_000,
+    sparkline: [4.2, 4.25, 4.31, 4.55, 4.7, 4.82, 4.86],
+  },
+]
+
+/**
+ * Kept for back-compat: anything that already imports this synchronous list
+ * (filter-option pickers, storybook stories, etc.) keeps working.
+ */
+export function getMockPremiumPairs(): PremiumPairView[] {
+  return MOCK_PREMIUM_PAIRS
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ViewModel-returning facade — components consume only these.
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function getPremiumRankingView(limit = 10): Promise<PremiumPairView[]> {
+  if (env.useMock) {
+    return MOCK_PREMIUM_PAIRS.slice(0, limit)
+  }
+  const dtos = await fetchPremiumRanking(limit)
+  return toPremiumPairViews(dtos)
+}
+
+export async function getPremiumSnapshotView(base: string): Promise<PremiumPairView[]> {
+  if (env.useMock) {
+    return MOCK_PREMIUM_PAIRS.filter((pair) => pair.asset === base)
+  }
+  const dtos = await fetchPremiumSnapshot(base)
+  // SnapshotDto has the same {symbol, rate, ts} shape as RankingDto for our
+  // mapper's purposes — narrow it to that shared subset.
+  return toPremiumPairViews(
+    dtos.map((d) => ({
+      baseExchangeId: d.baseExchangeId,
+      compareExchangeId: d.compareExchangeId,
+      symbol: d.symbol,
+      premiumRate: d.premiumRate,
+      ts: d.ts,
+    })),
+  )
+}
+
+export async function getPremiumSeriesView(
+  params: PremiumSeriesParams,
+): Promise<PremiumTimeSeriesDto[]> {
+  if (env.useMock) {
+    return []
+  }
+  return fetchPremiumSeries(params)
 }

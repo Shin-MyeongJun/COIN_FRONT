@@ -1,53 +1,15 @@
 import { useState } from 'react'
-
-const SCOPES = [
-  { id: 'market:read', label: 'market:read', desc: '마켓/틱/김프/FX 조회' },
-  { id: 'analytics:read', label: 'analytics:read', desc: '캔들/지표 조회' },
-  { id: 'economic:read', label: 'economic:read', desc: '경제지표 조회' },
-  { id: 'stream:subscribe', label: 'stream:subscribe', desc: 'SSE 구독' },
-  { id: 'watchlist:write', label: 'watchlist:write', desc: '워치리스트 변경' },
-  { id: 'alert:write', label: 'alert:write', desc: '알람 규칙 변경' },
-]
-
-type ApiKey = {
-  id: number
-  label: string
-  prefix: string
-  scopes: string[]
-  ipRestriction: string | null
-  active: boolean
-  createdAt: number
-  lastUsedAt: number | null
-  dailyRequests: number
-  dailyLimit: number
-}
-
-const MOCK_KEYS: ApiKey[] = [
-  {
-    id: 1,
-    label: 'trading-bot-prod',
-    prefix: 'cd_live_xk7m...',
-    scopes: ['market:read', 'stream:subscribe', 'analytics:read'],
-    ipRestriction: '203.0.113.42',
-    active: true,
-    createdAt: Date.now() - 60 * 86400_000,
-    lastUsedAt: Date.now() - 5 * 60_000,
-    dailyRequests: 12403,
-    dailyLimit: 50000,
-  },
-  {
-    id: 2,
-    label: 'personal-dashboard',
-    prefix: 'cd_live_p9nq...',
-    scopes: ['market:read', 'analytics:read', 'economic:read'],
-    ipRestriction: null,
-    active: false,
-    createdAt: Date.now() - 10 * 86400_000,
-    lastUsedAt: null,
-    dailyRequests: 0,
-    dailyLimit: 50000,
-  },
-]
+import {
+  useApiKeysQuery,
+  useIssueApiKeyMutation,
+  useRevokeApiKeyMutation,
+} from '../features/apikey/api/useApiKeyQueries'
+import type {
+  ApiKeySummaryDto,
+  IssueApiKeyResponse,
+} from '../features/apikey/api/apikeyTypes'
+import { API_KEY_SCOPES, type ApiKeyScope } from '../shared/lib/apiKeyScopes'
+import { ProblemDetailAlert } from '../shared/ui/ProblemDetailAlert'
 
 function timeAgo(ts: number): string {
   const diff = Date.now() - ts
@@ -57,81 +19,75 @@ function timeAgo(ts: number): string {
   return `${Math.floor(diff / 86_400_000)}일 전`
 }
 
-function randomHex(len: number) {
-  return Array.from({ length: len }, () => Math.floor(Math.random() * 16).toString(16)).join('')
-}
-
 type CreateStep = 1 | 2 | 3
 
+const MAX_KEYS = 10
+const DEFAULT_SCOPES: ApiKeyScope[] = ['READ_MARKET']
+
 export function ApiKeysPage() {
-  const [keys, setKeys] = useState<ApiKey[]>(MOCK_KEYS)
+  const keysQuery = useApiKeysQuery()
+  const issueMutation = useIssueApiKeyMutation()
+  const revokeMutation = useRevokeApiKeyMutation()
+
+  const keys = keysQuery.data ?? []
+  const activeCount = keys.filter((k) => k.active).length
+
   const [showCreate, setShowCreate] = useState(false)
   const [step, setStep] = useState<CreateStep>(1)
   const [newLabel, setNewLabel] = useState('')
-  const [selectedScopes, setSelectedScopes] = useState<string[]>(['market:read'])
-  const [generatedKey, setGeneratedKey] = useState({ apiKey: '', secret: '' })
+  const [selectedScopes, setSelectedScopes] = useState<ApiKeyScope[]>(DEFAULT_SCOPES)
+  const [issued, setIssued] = useState<IssueApiKeyResponse | null>(null)
   const [copiedKey, setCopiedKey] = useState(false)
   const [copiedSecret, setCopiedSecret] = useState(false)
   const [confirmCopied, setConfirmCopied] = useState(false)
   const [newlyAddedId, setNewlyAddedId] = useState<number | null>(null)
 
-  const activeCount = keys.filter((k) => k.active).length
-
   function openCreate() {
     setNewLabel('')
-    setSelectedScopes(['market:read'])
+    setSelectedScopes(DEFAULT_SCOPES)
     setStep(1)
     setCopiedKey(false)
     setCopiedSecret(false)
     setConfirmCopied(false)
+    setIssued(null)
+    issueMutation.reset()
     setShowCreate(true)
   }
 
   function goStep2() {
-    if (!newLabel.trim()) return
+    if (!newLabel.trim() || selectedScopes.length === 0) return
     setStep(2)
   }
 
-  function goStep3() {
-    const apiKey = `cd_live_${randomHex(16)}`
-    const secret = `cd_secret_${randomHex(40)}`
-    setGeneratedKey({ apiKey, secret })
-    const newId = keys.length > 0 ? Math.max(...keys.map((k) => k.id)) + 1 : 1
-    const created: ApiKey = {
-      id: newId,
+  async function goStep3() {
+    const res = await issueMutation.mutateAsync({
       label: newLabel.trim(),
-      prefix: `${apiKey.slice(0, 14)}...`,
       scopes: selectedScopes,
-      ipRestriction: null,
-      active: true,
-      createdAt: Date.now(),
-      lastUsedAt: null,
-      dailyRequests: 0,
-      dailyLimit: 50000,
-    }
-    setKeys((prev) => [created, ...prev])
-    setNewlyAddedId(newId)
-    setTimeout(() => setNewlyAddedId(null), 3000)
+    })
+    setIssued(res)
+    setNewlyAddedId(res.summary.id)
+    window.setTimeout(() => setNewlyAddedId(null), 3000)
     setStep(3)
   }
 
   function closeDialog() {
     setShowCreate(false)
+    // Clear the secret out of memory the moment the dialog closes — the user
+    // explicitly confirmed they've saved it (Step 3 gate).
+    setIssued(null)
+    issueMutation.reset()
   }
 
   function copyText(text: string, setter: (v: boolean) => void) {
-    navigator.clipboard.writeText(text).then(() => {
+    void navigator.clipboard.writeText(text).then(() => {
       setter(true)
-      setTimeout(() => setter(false), 2000)
+      window.setTimeout(() => setter(false), 2000)
     })
   }
 
-  function toggleKeyActive(id: number) {
-    setKeys((prev) => prev.map((k) => k.id === id ? { ...k, active: !k.active } : k))
-  }
-
   function deleteKey(id: number) {
-    setKeys((prev) => prev.filter((k) => k.id !== id))
+    if (!window.confirm('이 API 키를 폐기하시겠습니까?')) return
+    revokeMutation.mutate({ id })
   }
 
   return (
@@ -140,176 +96,388 @@ export function ApiKeysPage() {
         <div>
           <p className="eyebrow">API Keys</p>
           <h1>API 키 관리</h1>
-          <p className="page-desc">활성 키 {activeCount}개 / 최대 10개</p>
+          <p className="page-desc">
+            {keysQuery.isPending
+              ? '불러오는 중…'
+              : `활성 키 ${activeCount}개 / 최대 ${MAX_KEYS}개`}
+          </p>
         </div>
-        <button type="button" className="btn-primary" onClick={openCreate} disabled={keys.length >= 10}>
+        <button
+          type="button"
+          className="btn-primary"
+          onClick={openCreate}
+          disabled={keysQuery.isPending || keys.length >= MAX_KEYS}
+        >
           + 키 생성
         </button>
       </div>
 
+      <ProblemDetailAlert error={keysQuery.error} />
+      <ProblemDetailAlert
+        error={revokeMutation.error}
+        onDismiss={() => revokeMutation.reset()}
+      />
+
       <div className="api-keys-list">
-        {keys.length === 0 && (
+        {keysQuery.isPending && (
+          <p className="muted-center" style={{ padding: '24px 0' }}>불러오는 중…</p>
+        )}
+        {!keysQuery.isPending && keys.length === 0 && (
           <div className="empty-state-card">
             <p>API 키가 없습니다. 첫 키를 생성하세요.</p>
-            <button type="button" className="btn-primary" onClick={openCreate}>키 생성</button>
+            <button type="button" className="btn-primary" onClick={openCreate}>
+              키 생성
+            </button>
           </div>
         )}
         {keys.map((key) => (
-          <div
+          <ApiKeyCard
             key={key.id}
-            className={`api-key-card workspace-panel ${key.active ? '' : 'inactive'} ${newlyAddedId === key.id ? 'highlight' : ''}`}
-          >
-            <div className="key-card-header">
-              <div className="key-title-row">
-                <span className={`rule-status-dot ${key.active ? 'active' : ''}`} />
-                <strong>{key.label}</strong>
-                <span className="key-prefix-chip">{key.prefix}</span>
-                {key.active ? <span className="status-badge active">활성</span> : <span className="status-badge">비활성</span>}
-              </div>
-              <div className="rule-actions">
-                <button type="button" className={`btn-sm ${key.active ? 'btn-warn' : 'btn-ok'}`} onClick={() => toggleKeyActive(key.id)}>
-                  {key.active ? '비활성화' : '활성화'}
-                </button>
-                <button type="button" className="btn-sm btn-danger" onClick={() => deleteKey(key.id)}>삭제</button>
-              </div>
-            </div>
-
-            <div className="key-card-meta">
-              <span>생성: {timeAgo(key.createdAt)}</span>
-              <span>최근 사용: {key.lastUsedAt ? timeAgo(key.lastUsedAt) : '없음'}</span>
-              {key.ipRestriction && <span>IP 제한: <code>{key.ipRestriction}</code></span>}
-            </div>
-
-            <div className="key-scopes">
-              {key.scopes.map((s) => <span key={s} className="scope-chip">{s}</span>)}
-            </div>
-
-            {key.active && (
-              <div className="key-usage-bar">
-                <div className="usage-labels">
-                  <span>일일 요청</span>
-                  <span>{key.dailyRequests.toLocaleString()} / {key.dailyLimit.toLocaleString()}</span>
-                </div>
-                <div className="usage-track">
-                  <div className="usage-fill" style={{ width: `${(key.dailyRequests / key.dailyLimit) * 100}%` }} />
-                </div>
-              </div>
-            )}
-          </div>
+            apiKey={key}
+            highlight={newlyAddedId === key.id}
+            onDelete={() => deleteKey(key.id)}
+            deleting={revokeMutation.isPending}
+          />
         ))}
       </div>
 
-      {/* Create Key Dialog */}
       {showCreate && (
-        <div className="dialog-backdrop" onClick={step === 3 ? undefined : closeDialog}>
-          <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
-            {step === 1 && (
-              <>
-                <div className="dialog-header">
-                  <h2>API 키 생성 (1/3)</h2>
-                  <button type="button" className="dialog-close" onClick={closeDialog} aria-label="닫기">✕</button>
-                </div>
-                <div className="dialog-body">
-                  <div className="form-field">
-                    <label htmlFor="new-label">키 라벨 <span className="required">*</span></label>
-                    <input
-                      id="new-label"
-                      type="text"
-                      placeholder="예: trading-bot-prod"
-                      value={newLabel}
-                      onChange={(e) => setNewLabel(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && goStep2()}
-                    />
-                  </div>
-                  <div className="form-section" style={{ marginTop: 16 }}>
-                    <h3 style={{ fontSize: 14, marginBottom: 10 }}>권한 스코프 선택</h3>
-                    {SCOPES.map((s) => (
-                      <label key={s.id} className="scope-row">
-                        <input
-                          type="checkbox"
-                          checked={selectedScopes.includes(s.id)}
-                          onChange={(e) => {
-                            if (e.target.checked) setSelectedScopes((p) => [...p, s.id])
-                            else setSelectedScopes((p) => p.filter((x) => x !== s.id))
-                          }}
-                        />
-                        <span className="scope-chip">{s.label}</span>
-                        <small className="scope-desc">{s.desc}</small>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-                <div className="dialog-footer">
-                  <button type="button" className="btn-secondary" onClick={closeDialog}>취소</button>
-                  <button type="button" className="btn-primary" onClick={goStep2} disabled={!newLabel.trim() || selectedScopes.length === 0}>다음 →</button>
-                </div>
-              </>
-            )}
+        <CreateKeyDialog
+          step={step}
+          newLabel={newLabel}
+          selectedScopes={selectedScopes}
+          issued={issued}
+          copiedKey={copiedKey}
+          copiedSecret={copiedSecret}
+          confirmCopied={confirmCopied}
+          submitting={issueMutation.isPending}
+          submitError={issueMutation.error}
+          onLabelChange={setNewLabel}
+          onScopeToggle={(scope, checked) =>
+            setSelectedScopes((prev) =>
+              checked ? [...prev, scope] : prev.filter((s) => s !== scope),
+            )
+          }
+          onBackToStep1={() => setStep(1)}
+          onStep2={goStep2}
+          onStep3={goStep3}
+          onCopyKey={(t) => copyText(t, setCopiedKey)}
+          onCopySecret={(t) => copyText(t, setCopiedSecret)}
+          onConfirmCopiedChange={setConfirmCopied}
+          onClose={closeDialog}
+        />
+      )}
+    </main>
+  )
+}
 
-            {step === 2 && (
-              <>
-                <div className="dialog-header">
-                  <h2>API 키 생성 (2/3)</h2>
-                </div>
-                <div className="dialog-body">
-                  <div className="verify-box">
-                    <p>⚠️ mock 단계입니다. 실제 서비스에서는 2FA 인증이 필요합니다.</p>
-                    <p>라벨: <strong>{newLabel}</strong></p>
-                    <p>스코프: {selectedScopes.join(', ')}</p>
-                  </div>
-                </div>
-                <div className="dialog-footer">
-                  <button type="button" className="btn-secondary" onClick={() => setStep(1)}>← 이전</button>
-                  <button type="button" className="btn-primary" onClick={goStep3}>키 생성 확인</button>
-                </div>
-              </>
-            )}
+// ── Subcomponents ─────────────────────────────────────────────────────────
 
-            {step === 3 && (
-              <>
-                <div className="dialog-header">
-                  <h2>API 키 생성 완료 (3/3)</h2>
-                </div>
-                <div className="dialog-body">
-                  <div className="secret-warning" role="alert">
-                    🚨 <strong>Secret Key는 이 화면을 닫으면 다시 볼 수 없습니다.</strong> 반드시 복사하세요.
-                  </div>
+function ApiKeyCard({
+  apiKey,
+  highlight,
+  onDelete,
+  deleting,
+}: {
+  apiKey: ApiKeySummaryDto
+  highlight: boolean
+  onDelete: () => void
+  deleting: boolean
+}) {
+  return (
+    <div
+      className={`api-key-card workspace-panel ${apiKey.active ? '' : 'inactive'} ${
+        highlight ? 'highlight' : ''
+      }`}
+    >
+      <div className="key-card-header">
+        <div className="key-title-row">
+          <span className={`rule-status-dot ${apiKey.active ? 'active' : ''}`} />
+          <strong>{apiKey.label}</strong>
+          <span className="key-prefix-chip">{apiKey.prefix}…</span>
+          {apiKey.active ? (
+            <span className="status-badge active">활성</span>
+          ) : (
+            <span className="status-badge">비활성</span>
+          )}
+        </div>
+        <div className="rule-actions">
+          <button
+            type="button"
+            className="btn-sm btn-danger"
+            onClick={onDelete}
+            disabled={deleting}
+          >
+            삭제
+          </button>
+        </div>
+      </div>
 
-                  <div className="key-reveal-field">
-                    <label>API Key</label>
-                    <div className="key-reveal-row">
-                      <code className="key-value">{generatedKey.apiKey}</code>
-                      <button type="button" className={`btn-sm ${copiedKey ? 'btn-ok' : ''}`} onClick={() => copyText(generatedKey.apiKey, setCopiedKey)}>
-                        {copiedKey ? '복사됨 ✓' : '복사'}
-                      </button>
-                    </div>
-                  </div>
+      <div className="key-card-meta">
+        <span>생성: {timeAgo(apiKey.createdAt)}</span>
+        <span>
+          최근 사용: {apiKey.lastUsedAt !== null ? timeAgo(apiKey.lastUsedAt) : '없음'}
+        </span>
+        {apiKey.ipRestriction !== null && (
+          <span>
+            IP 제한: <code>{apiKey.ipRestriction}</code>
+          </span>
+        )}
+      </div>
 
-                  <div className="key-reveal-field">
-                    <label>Secret Key</label>
-                    <div className="key-reveal-row">
-                      <code className="key-value secret">{generatedKey.secret}</code>
-                      <button type="button" className={`btn-sm ${copiedSecret ? 'btn-ok' : ''}`} onClick={() => copyText(generatedKey.secret, setCopiedSecret)}>
-                        {copiedSecret ? '복사됨 ✓' : '복사'}
-                      </button>
-                    </div>
-                  </div>
+      <div className="key-scopes">
+        {apiKey.scopes.map((s) => (
+          <span key={s} className="scope-chip">
+            {s}
+          </span>
+        ))}
+      </div>
 
-                  <label className="confirm-check-row">
-                    <input type="checkbox" checked={confirmCopied} onChange={(e) => setConfirmCopied(e.target.checked)} />
-                    <span>Secret Key를 안전한 곳에 복사했습니다.</span>
-                  </label>
-                </div>
-                <div className="dialog-footer">
-                  <button type="button" className="btn-primary" disabled={!confirmCopied} onClick={closeDialog}>
-                    {confirmCopied ? '닫기' : '복사 완료 후 닫기 가능'}
-                  </button>
-                </div>
-              </>
-            )}
+      {apiKey.active && apiKey.dailyLimit > 0 && (
+        <div className="key-usage-bar">
+          <div className="usage-labels">
+            <span>일일 요청</span>
+            <span>
+              {apiKey.dailyRequests.toLocaleString()} /{' '}
+              {apiKey.dailyLimit.toLocaleString()}
+            </span>
+          </div>
+          <div className="usage-track">
+            <div
+              className="usage-fill"
+              style={{
+                width: `${Math.min(100, (apiKey.dailyRequests / apiKey.dailyLimit) * 100)}%`,
+              }}
+            />
           </div>
         </div>
       )}
-    </main>
+    </div>
+  )
+}
+
+function CreateKeyDialog({
+  step,
+  newLabel,
+  selectedScopes,
+  issued,
+  copiedKey,
+  copiedSecret,
+  confirmCopied,
+  submitting,
+  submitError,
+  onLabelChange,
+  onScopeToggle,
+  onBackToStep1,
+  onStep2,
+  onStep3,
+  onCopyKey,
+  onCopySecret,
+  onConfirmCopiedChange,
+  onClose,
+}: {
+  step: CreateStep
+  newLabel: string
+  selectedScopes: ApiKeyScope[]
+  issued: IssueApiKeyResponse | null
+  copiedKey: boolean
+  copiedSecret: boolean
+  confirmCopied: boolean
+  submitting: boolean
+  submitError: unknown
+  onLabelChange: (v: string) => void
+  onScopeToggle: (scope: ApiKeyScope, checked: boolean) => void
+  onBackToStep1: () => void
+  onStep2: () => void
+  onStep3: () => Promise<void>
+  onCopyKey: (text: string) => void
+  onCopySecret: (text: string) => void
+  onConfirmCopiedChange: (v: boolean) => void
+  onClose: () => void
+}) {
+  return (
+    <div
+      className="dialog-backdrop"
+      onClick={step === 3 ? undefined : onClose}
+    >
+      <div className="dialog-box" onClick={(e) => e.stopPropagation()}>
+        {step === 1 && (
+          <>
+            <div className="dialog-header">
+              <h2>API 키 생성 (1/3)</h2>
+              <button
+                type="button"
+                className="dialog-close"
+                onClick={onClose}
+                aria-label="닫기"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="dialog-body">
+              <div className="form-field">
+                <label htmlFor="new-label">
+                  키 라벨 <span className="required">*</span>
+                </label>
+                <input
+                  id="new-label"
+                  type="text"
+                  placeholder="예: trading-bot-prod"
+                  value={newLabel}
+                  onChange={(e) => onLabelChange(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') onStep2()
+                  }}
+                />
+              </div>
+              <ScopePicker
+                selected={selectedScopes}
+                onToggle={onScopeToggle}
+              />
+            </div>
+            <div className="dialog-footer">
+              <button type="button" className="btn-secondary" onClick={onClose}>
+                취소
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={onStep2}
+                disabled={!newLabel.trim() || selectedScopes.length === 0}
+              >
+                다음 →
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <div className="dialog-header">
+              <h2>API 키 생성 (2/3)</h2>
+            </div>
+            <div className="dialog-body">
+              <div className="verify-box">
+                <p>아래 내용으로 키를 발급합니다.</p>
+                <p>
+                  라벨: <strong>{newLabel}</strong>
+                </p>
+                <p>스코프: {selectedScopes.join(', ')}</p>
+              </div>
+              <ProblemDetailAlert error={submitError} />
+            </div>
+            <div className="dialog-footer">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={onBackToStep1}
+                disabled={submitting}
+              >
+                ← 이전
+              </button>
+              <button
+                type="button"
+                className="btn-primary"
+                onClick={() => {
+                  void onStep3()
+                }}
+                disabled={submitting}
+              >
+                {submitting ? '발급 중…' : '키 생성 확인'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {step === 3 && issued !== null && (
+          <>
+            <div className="dialog-header">
+              <h2>API 키 생성 완료 (3/3)</h2>
+            </div>
+            <div className="dialog-body">
+              <div className="secret-warning" role="alert">
+                🚨{' '}
+                <strong>
+                  Secret Key는 이 화면을 닫으면 다시 볼 수 없습니다.
+                </strong>{' '}
+                반드시 복사하세요.
+              </div>
+
+              <div className="key-reveal-field">
+                <label>API Key</label>
+                <div className="key-reveal-row">
+                  <code className="key-value">{issued.apiKey}</code>
+                  <button
+                    type="button"
+                    className={`btn-sm ${copiedKey ? 'btn-ok' : ''}`}
+                    onClick={() => onCopyKey(issued.apiKey)}
+                  >
+                    {copiedKey ? '복사됨 ✓' : '복사'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="key-reveal-field">
+                <label>Secret Key</label>
+                <div className="key-reveal-row">
+                  <code className="key-value secret">{issued.secret}</code>
+                  <button
+                    type="button"
+                    className={`btn-sm ${copiedSecret ? 'btn-ok' : ''}`}
+                    onClick={() => onCopySecret(issued.secret)}
+                  >
+                    {copiedSecret ? '복사됨 ✓' : '복사'}
+                  </button>
+                </div>
+              </div>
+
+              <label className="confirm-check-row">
+                <input
+                  type="checkbox"
+                  checked={confirmCopied}
+                  onChange={(e) => onConfirmCopiedChange(e.target.checked)}
+                />
+                <span>Secret Key를 안전한 곳에 복사했습니다.</span>
+              </label>
+            </div>
+            <div className="dialog-footer">
+              <button
+                type="button"
+                className="btn-primary"
+                disabled={!confirmCopied}
+                onClick={onClose}
+              >
+                {confirmCopied ? '닫기' : '복사 완료 후 닫기 가능'}
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ScopePicker({
+  selected,
+  onToggle,
+}: {
+  selected: ApiKeyScope[]
+  onToggle: (scope: ApiKeyScope, checked: boolean) => void
+}) {
+  return (
+    <div className="form-section" style={{ marginTop: 16 }}>
+      <h3 style={{ fontSize: 14, marginBottom: 10 }}>권한 스코프 선택</h3>
+      {API_KEY_SCOPES.map((s) => (
+        <label key={s.id} className="scope-row">
+          <input
+            type="checkbox"
+            checked={selected.includes(s.id)}
+            onChange={(e) => onToggle(s.id, e.target.checked)}
+          />
+          <span className="scope-chip">{s.label}</span>
+          <small className="scope-desc">{s.description}</small>
+        </label>
+      ))}
+    </div>
   )
 }

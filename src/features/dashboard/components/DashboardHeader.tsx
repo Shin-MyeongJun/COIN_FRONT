@@ -1,8 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { ThemeToggle } from '../../../shared/ui/ThemeToggle'
-import { formatVolume } from '../../../shared/lib/formatNumber'
-import { formatPercent } from '../../../shared/lib/formatPremium'
-import type { PremiumPairView } from '../../premium/model/premiumViewTypes'
 
 const NAV_ITEMS = [
   { label: '대시보드', path: '/' },
@@ -13,18 +10,10 @@ const NAV_ITEMS = [
   { label: 'API 문서', path: '/api-docs' },
 ]
 
-export function DashboardHeader({
-  averageBuyPremium,
-  selectedPair,
-  totalVolume,
-}: {
-  averageBuyPremium: number
-  selectedPair: PremiumPairView
-  totalVolume: number
-}) {
+// NOTE: ticker-strip(평균 김프 등)은 GlobalIndicatorBar와 중복되어 제거. 헤더라인은 GlobalIndicatorBar 단일 소스.
+export function DashboardHeader() {
   const navigate = useNavigate()
   const location = useLocation()
-  const impliedFx = selectedPair.domesticCurrentPrice / selectedPair.offshoreCurrentPrice / (1 + selectedPair.buyPremiumRate / 100)
 
   return (
     <header className="topbar">
@@ -33,14 +22,6 @@ export function DashboardHeader({
           <span className="brand-mark" aria-hidden="true" />
           CoinData
         </button>
-
-        <div className="ticker-strip" aria-label="시장 요약">
-          <TickerItem label={`${selectedPair.asset} 김프`} value={formatPercent(selectedPair.buyPremiumRate)} tone="positive" />
-          <TickerItem label="USDT/KRW" value={impliedFx.toLocaleString('ko-KR', { maximumFractionDigits: 1 })} />
-          <TickerItem label="24h Premium Vol" value={`₩${formatVolume(totalVolume)}`} delta={formatPercent(18.7)} tone="positive" />
-          <TickerItem label="평균 김프" value={formatPercent(averageBuyPremium)} delta="▼ 0.38%" tone="negative" />
-          <TickerItem label="Fear & Greed" value="63 (Greed)" tone="positive" gauge />
-        </div>
 
         <div className="header-actions">
           <ThemeToggle />
@@ -81,28 +62,5 @@ function NavButton({ active, label, onClick }: { active: boolean; label: string;
       <span aria-hidden="true" />
       {label}
     </button>
-  )
-}
-
-function TickerItem({
-  label,
-  value,
-  delta,
-  tone,
-  gauge = false,
-}: {
-  label: string
-  value: string
-  delta?: string
-  tone?: 'positive' | 'negative'
-  gauge?: boolean
-}) {
-  return (
-    <div className="ticker-item">
-      <span>{label}</span>
-      <strong className={tone ? `text-${tone}` : undefined}>{value}</strong>
-      {delta && <small className={tone ? `text-${tone}` : undefined}>{delta}</small>}
-      {gauge && <i aria-hidden="true" />}
-    </div>
   )
 }

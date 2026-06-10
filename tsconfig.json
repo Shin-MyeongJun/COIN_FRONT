@@ -14,6 +14,11 @@
     "moduleDetection": "force",
     "noEmit": true,
 
+    /* Path aliases (TS 6+: paths resolve relative to tsconfig dir when baseUrl is omitted) */
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+
     /* Linting */
     "noUnusedLocals": true,
     "noUnusedParameters": true,

@@ -1,7 +1,19 @@
-import { createSseClient } from './sseClient'
+import { API_ENDPOINTS, SSE_EVENT_KEYS } from '../../../shared/api/endpoints'
+import { subscribeStream, type StreamHandle, type StreamStatus } from './sseClient'
 
-export const tickStreamPath = '/api/v1/stream/ticks'
+export const tickStreamPath = API_ENDPOINTS.stream.ticks
+export const tickEvent = SSE_EVENT_KEYS.tick
 
-export function connectTickStream(marketCodeId?: number) {
-  return createSseClient(tickStreamPath, { marketCodeId })
+/** Subscribe to the public `tick` stream (event: tick). */
+export function subscribeTickStream<T>(
+  onData: (payload: T) => void,
+  options: { marketCodeId?: number; onStatus?: (status: StreamStatus) => void } = {},
+): StreamHandle {
+  return subscribeStream<T>({
+    path: tickStreamPath,
+    params: { marketCodeId: options.marketCodeId },
+    event: tickEvent,
+    onData,
+    onStatus: options.onStatus,
+  })
 }

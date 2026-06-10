@@ -2,34 +2,59 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getMockPremiumPairs } from '../features/premium/api/premiumApi'
 import { PremiumSparkline } from '../features/premium/components/PremiumSparkline'
+import {
+  useAddWatchlistMutation,
+  useRemoveWatchlistMutation,
+  useWatchlistQuery,
+} from '../features/watchlist/api/useWatchlistQueries'
+import type { WatchlistItemDto } from '../features/watchlist/api/watchlistTypes'
+import { ProblemDetailAlert } from '../shared/ui/ProblemDetailAlert'
 import { formatPercent } from '../shared/lib/formatPremium'
 import { formatPrice } from '../shared/lib/formatPrice'
 
+// Premium-pairs catalog is still mocked at the M3 layer — used here only as
+// a lookup table for price / sparkline display next to each watchlist row,
+// and as the source of "addable" candidates in the search panel.
 const ALL_PAIRS = getMockPremiumPairs()
-const DEFAULT_WATCHLIST = ['BTC', 'ETH', 'XRP', 'SOL']
 
 export function WatchlistPage() {
   const navigate = useNavigate()
-  const [watchlist, setWatchlist] = useState<string[]>(DEFAULT_WATCHLIST)
   const [search, setSearch] = useState('')
 
-  const watchedPairs = watchlist
-    .map((a) => ALL_PAIRS.find((p) => p.asset === a))
-    .filter(Boolean)
+  const listQuery = useWatchlistQuery()
+  const addMutation = useAddWatchlistMutation()
+  const removeMutation = useRemoveWatchlistMutation()
+
+  const items: WatchlistItemDto[] = listQuery.data?.items ?? []
+  const watchedAssets = new Set(items.map((i) => i.asset))
+
+  const watchedPairs = items.map((item) => {
+    const pair = ALL_PAIRS.find((p) => p.asset === item.asset)
+    return { item, pair }
+  })
 
   const availableToAdd = ALL_PAIRS.filter(
-    (p) => !watchlist.includes(p.asset) &&
-      (p.asset.toLowerCase().includes(search.toLowerCase()) || p.assetName.toLowerCase().includes(search.toLowerCase()))
+    (p) =>
+      !watchedAssets.has(p.asset) &&
+      (p.asset.toLowerCase().includes(search.toLowerCase()) ||
+        p.assetName.toLowerCase().includes(search.toLowerCase())),
   )
 
-  function remove(asset: string) {
-    setWatchlist((prev) => prev.filter((a) => a !== asset))
+  function handleAdd(asset: string) {
+    addMutation.mutate(
+      { asset },
+      {
+        onSuccess: () => setSearch(''),
+      },
+    )
   }
 
-  function add(asset: string) {
-    setWatchlist((prev) => [...prev, asset])
-    setSearch('')
+  function handleRemove(id: number) {
+    removeMutation.mutate({ id })
   }
+
+  const total = listQuery.data?.total ?? items.length
+  const isInitialLoading = listQuery.isPending
 
   return (
     <main className="page-content watchlist-page">
@@ -37,51 +62,73 @@ export function WatchlistPage() {
         <div>
           <p className="eyebrow">Watchlist</p>
           <h1>관심 목록</h1>
-          <p className="page-desc">총 {watchlist.length}개 자산 추적 중</p>
+          <p className="page-desc">
+            {isInitialLoading ? '불러오는 중…' : `총 ${total}개 자산 추적 중`}
+          </p>
         </div>
       </div>
 
+      <ProblemDetailAlert error={listQuery.error} />
+      <ProblemDetailAlert
+        error={addMutation.error}
+        onDismiss={() => addMutation.reset()}
+      />
+      <ProblemDetailAlert
+        error={removeMutation.error}
+        onDismiss={() => removeMutation.reset()}
+      />
+
       <section className="workspace-panel watchlist-main-panel">
         <h2>내 관심 목록</h2>
-        {watchedPairs.length === 0 && (
+
+        {isInitialLoading && (
+          <p className="muted-center" style={{ padding: '24px 0' }}>불러오는 중…</p>
+        )}
+
+        {!isInitialLoading && watchedPairs.length === 0 && (
           <p className="muted-center" style={{ padding: '24px 0' }}>관심 목록이 비어 있습니다.</p>
         )}
+
         <div className="watchlist-manage-list">
-          {watchedPairs.map((pair) => {
-            if (!pair) return null
-            return (
-              <div key={pair.asset} className="watchlist-manage-row">
-                <button
-                  type="button"
-                  className="wl-row-info"
-                  onClick={() => navigate(`/market/${pair.asset}`)}
-                >
-                  <span className="coin-symbol-badge wl-badge">{pair.asset.slice(0, 1)}</span>
-                  <span className="wl-info">
-                    <strong>{pair.asset}</strong>
-                    <small>{pair.assetName}</small>
-                  </span>
-                  <span className="wl-price">
-                    <strong>{formatPrice(pair.domesticCurrentPrice, 'KRW')}</strong>
-                    <small className={pair.buyPremiumRate >= 0 ? 'text-positive' : 'text-negative'}>
-                      김프 {formatPercent(pair.buyPremiumRate)}
-                    </small>
-                  </span>
-                  <span className="wl-sparkline">
-                    <PremiumSparkline values={pair.sparkline} />
-                  </span>
-                </button>
-                <button
-                  type="button"
-                  className="btn-sm btn-danger wl-remove"
-                  onClick={() => remove(pair.asset)}
-                  aria-label={`${pair.asset} 관심 목록에서 제거`}
-                >
-                  ✕
-                </button>
-              </div>
-            )
-          })}
+          {watchedPairs.map(({ item, pair }) => (
+            <div key={item.id} className="watchlist-manage-row">
+              <button
+                type="button"
+                className="wl-row-info"
+                onClick={() => navigate(`/market/${item.asset}`)}
+              >
+                <span className="coin-symbol-badge wl-badge">{item.asset.slice(0, 1)}</span>
+                <span className="wl-info">
+                  <strong>{item.asset}</strong>
+                  <small>{item.assetName ?? pair?.assetName ?? item.asset}</small>
+                </span>
+                <span className="wl-price">
+                  {pair !== undefined ? (
+                    <>
+                      <strong>{formatPrice(pair.domesticCurrentPrice, 'KRW')}</strong>
+                      <small className={pair.buyPremiumRate >= 0 ? 'text-positive' : 'text-negative'}>
+                        김프 {formatPercent(pair.buyPremiumRate)}
+                      </small>
+                    </>
+                  ) : (
+                    <small className="muted">시세 정보 없음</small>
+                  )}
+                </span>
+                <span className="wl-sparkline">
+                  {pair !== undefined && <PremiumSparkline values={pair.sparkline} />}
+                </span>
+              </button>
+              <button
+                type="button"
+                className="btn-sm btn-danger wl-remove"
+                onClick={() => handleRemove(item.id)}
+                disabled={removeMutation.isPending}
+                aria-label={`${item.asset} 관심 목록에서 제거`}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
         </div>
       </section>
 
@@ -101,7 +148,8 @@ export function WatchlistPage() {
               key={pair.asset}
               type="button"
               className="wl-add-chip"
-              onClick={() => add(pair.asset)}
+              onClick={() => handleAdd(pair.asset)}
+              disabled={addMutation.isPending}
             >
               <span className="coin-symbol-badge wl-badge sm">{pair.asset.slice(0, 1)}</span>
               <span>

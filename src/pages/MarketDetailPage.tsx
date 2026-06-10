@@ -1,59 +1,50 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { ChartErrorBoundary } from '../features/chart/components/ChartErrorBoundary'
 import { IndicatorOverlayControls } from '../features/chart/components/IndicatorOverlayControls'
 import { LwCandleChart } from '../features/chart/components/LwCandleChart'
+import { useLiveCandle } from '../features/chart/model/useLiveCandle'
 import {
   defaultIndicatorOverlays,
   INTERVALS,
   type IndicatorOverlayState,
   type Interval,
 } from '../features/chart/model/chartTypes'
-import {
-  getMockCandleData,
-  getMoreMockCandles,
-} from '../features/chart/model/mockCandleData'
-import { getMockTimelineMarkers } from '../features/economic/api/economicApi'
+import { useChartComposition } from '../features/market/api/useMarketQueries'
+import { useTimelineMarkers } from '../features/economic/api/useEconomicQueries'
 import { EconomicTimeline } from '../features/economic/components/EconomicTimeline'
 import { PremiumBreakdownList } from '../features/market/components/PremiumBreakdownList'
 import { getMockPremiumPairs } from '../features/premium/api/premiumApi'
+import { env } from '../shared/config/env'
 import { formatVolume } from '../shared/lib/formatNumber'
 import { formatPercent } from '../shared/lib/formatPremium'
 import { formatPrice } from '../shared/lib/formatPrice'
 
 const allPairs = getMockPremiumPairs()
-const timelineMarkers = getMockTimelineMarkers()
 
 export function MarketDetailPage() {
   const { symbol } = useParams<{ symbol: string }>()
   const navigate = useNavigate()
   const [interval, setIntervalKey] = useState<Interval>('1h')
   const [overlays, setOverlays] = useState<IndicatorOverlayState>(defaultIndicatorOverlays)
+  const { data: timelineMarkers } = useTimelineMarkers()
 
-  const pair = allPairs.find((p) => p.asset === symbol) ?? allPairs[0]
+  const pairIndex = allPairs.findIndex((p) => p.asset === symbol)
+  const pair = pairIndex >= 0 ? allPairs[pairIndex] : allPairs[0]
+  // mock 모드에는 실제 marketCodeId 가 없어 자산 인덱스를 stand-in 으로 사용한다.
+  // real 모드에서는 meta 조회로 받은 marketCodeId 로 대체될 자리(후속 PR).
+  const marketCodeId = (pairIndex >= 0 ? pairIndex : 0) + 1
 
-  const [candles, setCandles] = useState(() => getMockCandleData(pair.asset, '1h').candles)
-  const [volumes, setVolumes] = useState(() => getMockCandleData(pair.asset, '1h').volumes)
+  // 캔들/볼륨/EMA = 백엔드 composition. interval 이 캐시 키라 전환 시 자동 재조회된다.
+  const chartQuery = useChartComposition({ marketCodeId, interval, asset: pair.asset })
+  const candles = chartQuery.data?.candles ?? []
+  const volumes = chartQuery.data?.volumes ?? []
+  const chartIndicators = chartQuery.data
+    ? { ema20: chartQuery.data.ema20, ema50: chartQuery.data.ema50 }
+    : undefined
 
-  // Reset candle data when interval changes
-  const handleIntervalChange = useCallback((iv: Interval) => {
-    setIntervalKey(iv)
-    const { candles: c, volumes: v } = getMockCandleData(pair.asset, iv)
-    setCandles(c)
-    setVolumes(v)
-  }, [pair.asset])
-
-  // Infinite scroll: prepend older candles
-  const handleNearLeftEdge = useCallback(() => {
-    setCandles((prev) => {
-      if (!prev.length) return prev
-      const oldest = prev[0].time as number
-      const { candles: more, volumes: moreVol } = getMoreMockCandles(pair.asset, interval, oldest)
-      if (!more.length) return prev
-      setVolumes((pv) => [...moreVol, ...pv])
-      return [...more, ...prev]
-    })
-  }, [pair.asset, interval])
+  // 라이브 캔들: mock 모드면 2초 시뮬레이션, real 모드면 candles/close SSE 구독.
+  const liveCandle = useLiveCandle({ asset: pair.asset, candles })
 
   const sparkline = pair.sparkline.length > 0 ? pair.sparkline : [pair.buyPremiumRate]
   const premiumLow = Math.min(...sparkline)
@@ -141,7 +132,7 @@ export function MarketDetailPage() {
           <div>
             <p className="eyebrow">차트</p>
             <h2>{pair.asset} 캔들 차트</h2>
-            <p className="live-badge">● LIVE (2초 갱신)</p>
+            <p className="live-badge">● LIVE {env.useMock ? '(2초 시뮬레이션)' : '(실시간 SSE)'}</p>
           </div>
           <div className="chart-controls-row">
             <div className="interval-tabs" aria-label="인터벌 선택">
@@ -150,7 +141,7 @@ export function MarketDetailPage() {
                   key={iv}
                   type="button"
                   className={iv === interval ? 'active' : ''}
-                  onClick={() => handleIntervalChange(iv)}
+                  onClick={() => setIntervalKey(iv)}
                 >
                   {iv}
                 </button>
@@ -162,14 +153,24 @@ export function MarketDetailPage() {
         <IndicatorOverlayControls overlays={overlays} onOverlayChange={setOverlays} />
 
         <ChartErrorBoundary>
-          <LwCandleChart
-            candles={candles}
-            volumes={volumes}
-            height={440}
-            overlays={overlays}
-            enableLiveUpdate
-            onNearLeftEdge={handleNearLeftEdge}
-          />
+          {chartQuery.isError ? (
+            <p className="chart-empty" role="alert">
+              차트를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.
+            </p>
+          ) : candles.length === 0 ? (
+            <p className="chart-empty" role="status">
+              {chartQuery.isLoading ? '차트를 불러오는 중…' : '표시할 캔들 데이터가 없습니다.'}
+            </p>
+          ) : (
+            <LwCandleChart
+              candles={candles}
+              volumes={volumes}
+              height={440}
+              overlays={overlays}
+              indicators={chartIndicators}
+              liveCandle={liveCandle}
+            />
+          )}
         </ChartErrorBoundary>
       </section>
 
@@ -185,7 +186,7 @@ export function MarketDetailPage() {
         </article>
 
         <article className="workspace-panel timeline-card">
-          <EconomicTimeline markers={timelineMarkers} />
+          <EconomicTimeline markers={timelineMarkers ?? []} />
         </article>
       </section>
     </main>

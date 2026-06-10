@@ -24,6 +24,11 @@ export interface PremiumPairView {
   sparkline: number[]
 }
 
+/** Stable identity for a premium row (one asset can appear per exchange pair). */
+export function premiumPairKey(pair: PremiumPairView): string {
+  return `${pair.asset}-${pair.domesticExchange}-${pair.offshoreExchange}`
+}
+
 export type PremiumSortKey =
   | 'asset'
   | 'domesticCurrentPrice'

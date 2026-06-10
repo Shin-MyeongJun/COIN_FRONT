@@ -1,11 +1,7 @@
-import { useMemo } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { DashboardHeader } from '../../features/dashboard/components/DashboardHeader'
 import { GlobalIndicatorBar } from '../../features/globalBar/components/GlobalIndicatorBar'
-import { getMockPremiumPairs } from '../../features/premium/api/premiumApi'
 import { useAuthStore } from '../../shared/store/authStore'
-
-const premiumPairs = getMockPremiumPairs()
 
 const SIDEBAR_ITEMS = [
   { label: '개요', path: '/' },
@@ -24,19 +20,9 @@ export function AppLayout() {
   const location = useLocation()
   const { isAuthenticated, user, logout } = useAuthStore()
 
-  const averageBuyPremium = useMemo(
-    () => premiumPairs.reduce((sum, p) => sum + p.buyPremiumRate, 0) / premiumPairs.length,
-    [],
-  )
-  const totalVolume = useMemo(() => premiumPairs.reduce((sum, p) => sum + p.volume24h, 0), [])
-
   return (
     <div className="app-shell">
-      <DashboardHeader
-        averageBuyPremium={averageBuyPremium}
-        selectedPair={premiumPairs[0]}
-        totalVolume={totalVolume}
-      />
+      <DashboardHeader />
       <GlobalIndicatorBar />
 
       <div className="app-body">
@@ -66,7 +52,16 @@ export function AppLayout() {
             {isAuthenticated ? (
               <>
                 <span className="sidebar-user-name">{user?.name ?? '사용자'}</span>
-                <button type="button" className="sidebar-logout" onClick={() => { logout(); navigate('/login') }}>로그아웃</button>
+                <button
+                  type="button"
+                  className="sidebar-logout"
+                  onClick={async () => {
+                    await logout()
+                    navigate('/login')
+                  }}
+                >
+                  로그아웃
+                </button>
               </>
             ) : (
               <button type="button" className="sidebar-login" onClick={() => navigate('/login')}>로그인</button>

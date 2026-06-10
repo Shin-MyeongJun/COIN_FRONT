@@ -1,6 +1,8 @@
+import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
 import { AppLayout } from './layout/AppLayout'
 import { ProtectedRoute } from '../shared/ui/ProtectedRoute'
+import { useAuthStore } from '../shared/store/authStore'
 import { AlertDetailPage } from '../pages/AlertDetailPage'
 import { AlertNewPage } from '../pages/AlertNewPage'
 import { AlertsPage } from '../pages/AlertsPage'
@@ -16,6 +18,14 @@ import { SignupPage } from '../pages/SignupPage'
 import { WatchlistPage } from '../pages/WatchlistPage'
 
 export function App() {
+  const bootstrap = useAuthStore((s) => s.bootstrap)
+
+  // Restore session on mount: tries /auth/refresh once. If the httpOnly cookie
+  // is missing/expired this is a quiet no-op and the user stays unauthenticated.
+  useEffect(() => {
+    void bootstrap()
+  }, [bootstrap])
+
   return (
     <Routes>
       {/* auth pages (no layout) */}

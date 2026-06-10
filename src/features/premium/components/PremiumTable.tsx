@@ -4,18 +4,23 @@ import { formatVolume } from '../../../shared/lib/formatNumber'
 import { formatPercent } from '../../../shared/lib/formatPremium'
 import { formatPrice } from '../../../shared/lib/formatPrice'
 import { EmptyState } from '../../../shared/ui/EmptyState'
-import { premiumSortLabels, type PremiumPairView, type PremiumSortKey } from '../model/premiumViewTypes'
+import { premiumPairKey, premiumSortLabels, type PremiumPairView, type PremiumSortKey } from '../model/premiumViewTypes'
 import { PremiumMetricCell } from './PremiumMetricCell'
 import { PremiumSparkline } from './PremiumSparkline'
 
+const EMPTY_CHANGED: ReadonlySet<string> = new Set()
+
 export function PremiumTable({
   pairs,
+  changedKeys = EMPTY_CHANGED,
   sortDirection,
   sortKey,
   onPairSelect,
   onSort,
 }: {
   pairs: PremiumPairView[]
+  /** Row keys (premiumPairKey) that just updated — flashed via row-flash. */
+  changedKeys?: ReadonlySet<string>
   sortDirection: SortDirection
   sortKey: PremiumSortKey
   onPairSelect: (pair: PremiumPairView) => void
@@ -64,8 +69,14 @@ export function PremiumTable({
           </tr>
         </thead>
         <tbody>
-          {pairs.map((pair, index) => (
-            <tr key={`${pair.asset}-${pair.domesticExchange}-${pair.offshoreExchange}`} onClick={() => onPairSelect(pair)}>
+          {pairs.map((pair, index) => {
+            const key = premiumPairKey(pair)
+            return (
+            <tr
+              key={key}
+              className={changedKeys.has(key) ? 'row-flash' : undefined}
+              onClick={() => onPairSelect(pair)}
+            >
               <td>{index + 1}</td>
               <td>
                 <div className="asset-cell asset-cell-inline">
@@ -97,7 +108,8 @@ export function PremiumTable({
               <td>KRW {formatVolume(pair.volume24h)}</td>
               <td><PremiumSparkline values={pair.sparkline} /></td>
             </tr>
-          ))}
+            )
+          })}
         </tbody>
       </table>
     </div>

@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { z } from 'zod'
+import { useAuthStore } from '../shared/store/authStore'
 
 const schema = z.object({
   name: z.string().min(2, '이름은 2자 이상').max(20, '이름은 20자 이하'),
@@ -18,15 +19,28 @@ type FormValues = z.infer<typeof schema>
 
 export function SignupPage() {
   const navigate = useNavigate()
+  const signup = useAuthStore((s) => s.signup)
   const [done, setDone] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+  const [loading, setLoading] = useState(false)
 
   const { register, handleSubmit, formState: { errors } } = useForm<FormValues>({
     resolver: zodResolver(schema),
   })
 
-  function onSubmit(_data: FormValues) {
-    setDone(true)
-    setTimeout(() => navigate('/login'), 1500)
+  async function onSubmit(data: FormValues) {
+    setSubmitError('')
+    setLoading(true)
+    try {
+      await signup({ email: data.email, password: data.password, name: data.name })
+      setDone(true)
+      setTimeout(() => navigate('/login'), 1500)
+    } catch (err) {
+      setSubmitError(useAuthStore.getState().lastError ?? '가입에 실패했습니다.')
+      void err
+    } finally {
+      setLoading(false)
+    }
   }
 
   if (done) {
@@ -54,6 +68,10 @@ export function SignupPage() {
         <form className="auth-form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <h2>회원가입</h2>
 
+          {submitError !== '' && (
+            <div className="auth-error" role="alert">{submitError}</div>
+          )}
+
           <div className="form-field">
             <label htmlFor="name">이름</label>
             <input id="name" type="text" autoComplete="name" {...register('name')} />
@@ -78,7 +96,9 @@ export function SignupPage() {
             {errors.confirm && <span className="field-error">{errors.confirm.message}</span>}
           </div>
 
-          <button type="submit" className="btn-primary auth-submit">가입하기</button>
+          <button type="submit" className="btn-primary auth-submit" disabled={loading}>
+            {loading ? '가입 중...' : '가입하기'}
+          </button>
 
           <p className="auth-switch">
             이미 계정이 있으신가요?{' '}

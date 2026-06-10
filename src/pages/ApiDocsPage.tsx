@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { env } from '../shared/config/env'
 
 type Endpoint = {
   method: 'GET' | 'POST' | 'DELETE' | 'PUT'
@@ -99,8 +100,13 @@ const TAGS = Array.from(new Set(ENDPOINTS.map((e) => e.tag)))
 
 type CodeTab = 'curl' | 'js' | 'python' | 'java'
 
+// Trim trailing slash so we don't render double-slashes in code samples.
+function getBaseUrl(): string {
+  return env.apiBaseUrl.replace(/\/+$/, '')
+}
+
 function makeCurlExample(ep: Endpoint): string {
-  const base = 'http://localhost:8080'
+  const base = getBaseUrl()
   const path = ep.path.replace(/{(\w+)}/g, ':$1')
   return `curl -X ${ep.method} \\
   "${base}${path}" \\
@@ -109,7 +115,7 @@ function makeCurlExample(ep: Endpoint): string {
 }
 
 function makeJsExample(ep: Endpoint): string {
-  const base = 'http://localhost:8080'
+  const base = getBaseUrl()
   const path = ep.path.replace(/{(\w+)}/g, '${id}')
   return `const res = await fetch(\`${base}${path}\`, {
   method: '${ep.method}',
@@ -122,7 +128,7 @@ console.log(data)`
 }
 
 function makePythonExample(ep: Endpoint): string {
-  const base = 'http://localhost:8080'
+  const base = getBaseUrl()
   const path = ep.path.replace(/{(\w+)}/g, '{id}')
   return `import httpx
 
@@ -134,7 +140,8 @@ print(data)`
 }
 
 function makeJavaExample(ep: Endpoint): string {
-  return `WebClient client = WebClient.create("http://localhost:8080");
+  const base = getBaseUrl()
+  return `WebClient client = WebClient.create("${base}");
 
 client.${ep.method.toLowerCase()}()
     .uri("${ep.path}")

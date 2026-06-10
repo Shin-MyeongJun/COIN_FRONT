@@ -1,6 +1,12 @@
 import { getJson } from '../../../shared/api/httpClient'
+import { env } from '../../../shared/config/env'
 import type { TimelineMarker } from '../../chart/model/markerTypes'
-import type { EconomicCalendarDto } from './economicTypes'
+import { mapCalendarToMarkers } from '../model/economicMappers'
+import type {
+  EconomicCalendarDto,
+  EconomicCorrelationDto,
+  EconomicIndicatorDto,
+} from './economicTypes'
 
 const now = Date.now()
 
@@ -49,4 +55,31 @@ export function getMockTimelineMarkers(): TimelineMarker[] {
 
 export function fetchEconomicCalendar(fromTs: number, toTs: number) {
   return getJson<EconomicCalendarDto[]>(economicApiPaths.calendar, { fromTs, toTs })
+}
+
+export function fetchEconomicIndicators(category?: string) {
+  return getJson<EconomicIndicatorDto[]>(economicApiPaths.indicators, { category })
+}
+
+export function fetchEconomicCorrelation(asset: string) {
+  return getJson<EconomicCorrelationDto[]>(economicApiPaths.correlation, { asset })
+}
+
+/**
+ * 타임라인 마커 — mock↔real 분기의 단일 지점.
+ *
+ * VITE_USE_MOCK=true  → in-frontend mock(getMockTimelineMarkers)
+ * VITE_USE_MOCK=false → GET /economic/calendar 호출 후 mapper로 TimelineMarker 변환
+ *
+ * 컴포넌트/페이지는 이 함수(또는 useEconomicQueries)만 호출하고 분기를 알 필요가 없다.
+ */
+export async function loadTimelineMarkers(range: {
+  fromTs: number
+  toTs: number
+}): Promise<TimelineMarker[]> {
+  if (env.useMock) {
+    return getMockTimelineMarkers()
+  }
+  const dtos = await fetchEconomicCalendar(range.fromTs, range.toTs)
+  return mapCalendarToMarkers(dtos)
 }
