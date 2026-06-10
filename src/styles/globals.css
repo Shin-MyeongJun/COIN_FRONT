@@ -24,36 +24,14 @@ button {
   min-height: 100svh;
 }
 
-.app-shell {
-  width: min(1480px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 18px 0 40px;
-}
-
-.topbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 10px 0 14px;
-}
-
-.brand-button {
-  display: block;
-  padding: 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font-size: 30px;
-  font-weight: 800;
-  letter-spacing: 0;
-}
+/* NOTE: .app-shell / .topbar / .brand-button 의 1차 정의는 뒤쪽 정의에 전부 덮이던 죽은 코드였음.
+   .brand-button 의 색/배경/테두리/굵기/letter-spacing 은 뒤쪽 단일 정의로 병합함(아래 .topbar-main 영역). */
 
 .eyebrow {
   margin: 0 0 4px;
   color: var(--accent);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   letter-spacing: 0;
   text-transform: uppercase;
 }
@@ -200,7 +178,7 @@ h2 {
   color: var(--green);
   padding: 6px 10px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .pair-pill {
@@ -268,7 +246,7 @@ h2 {
   gap: 5px;
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .field input,
@@ -278,7 +256,7 @@ h2 {
   min-height: 38px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
+  background: var(--input-bg);
   color: var(--text);
   padding: 7px 10px;
   outline: none;
@@ -304,7 +282,7 @@ h2 {
 
 .toggle-field.small {
   min-height: 32px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .toggle-field input {
@@ -346,12 +324,12 @@ h2 {
 }
 
 .premium-table tbody tr {
-  border-bottom: 1px solid #eef2f6;
+  border-bottom: 1px solid var(--line);
   transition: background 160ms ease;
 }
 
 .premium-table tbody tr:hover {
-  background: #f8fbff;
+  background: var(--surface-muted);
 }
 
 .asset-cell {
@@ -390,13 +368,13 @@ h2 {
   gap: 6px;
   padding: 5px 7px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
 }
 
 .sort-button span {
   color: var(--faint);
-  font-size: 10px;
+  font-size: 11px;
   text-transform: none;
 }
 
@@ -409,7 +387,7 @@ h2 {
 .premium-metric span {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .premium-metric strong,
@@ -452,7 +430,7 @@ h2 {
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fbfdff;
+  background: var(--chart-bg);
 }
 
 .candle-chart {
@@ -462,11 +440,11 @@ h2 {
 }
 
 .candle-chart rect:first-child {
-  fill: #fbfdff;
+  fill: var(--chart-bg);
 }
 
 .grid-line {
-  stroke: #e7edf4;
+  stroke: var(--line);
   stroke-width: 1;
 }
 
@@ -510,7 +488,7 @@ h2 {
 
 .candle-chart text {
   fill: var(--faint);
-  font-size: 10px;
+  font-size: 11px;
   text-anchor: middle;
 }
 
@@ -569,7 +547,7 @@ h2 {
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 18px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .rank-chip {
@@ -583,7 +561,7 @@ h2 {
   color: var(--muted);
   padding: 5px 10px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .coin-price-stack {
@@ -598,7 +576,7 @@ h2 {
 .chart-card-top p {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .coin-price-stack strong {
@@ -663,7 +641,7 @@ h2 {
   overflow: hidden;
   height: 8px;
   border-radius: 999px;
-  background: #e7edf4;
+  background: var(--surface-muted);
 }
 
 .range-track span {
@@ -722,11 +700,11 @@ h2 {
   min-height: 32px;
   border: 1px solid var(--line);
   border-radius: 7px;
-  background: #fff;
+  background: var(--surface);
   color: var(--muted);
   padding: 6px 11px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .chart-segment-row button.active,
@@ -738,7 +716,7 @@ h2 {
 
 .coingecko-chart-card .chart-frame {
   border-radius: 8px;
-  background: #fff;
+  background: var(--chart-bg);
 }
 
 .coingecko-chart-card .candle-chart {
@@ -769,20 +747,20 @@ h2 {
 
 .breakdown-list div {
   padding: 13px;
-  background: #fff;
+  background: var(--surface);
 }
 
 .breakdown-list dt {
   color: var(--muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .breakdown-list dd {
   margin: 4px 0 0;
   color: var(--text);
   font-size: 18px;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .timeline-list {
@@ -810,7 +788,7 @@ h2 {
 .timeline-item span {
   color: var(--accent);
   font-size: 11px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .timeline-item strong {
@@ -866,8 +844,13 @@ h2 {
   gap: 10px;
   height: 58px;
   padding: 0 18px;
+  border: 0;
   border-right: 1px solid var(--line);
+  background: transparent;
+  color: var(--text);
   font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .brand-mark {
@@ -891,10 +874,10 @@ h2 {
   min-height: 34px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   padding: 7px 10px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .header-actions .profile-button {
@@ -961,7 +944,7 @@ h2 {
   min-height: 36px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--input-bg);
   padding: 0 10px;
 }
 
@@ -1004,7 +987,7 @@ h2 {
   justify-content: space-between;
   height: calc(100svh - 147px);
   border-right: 1px solid var(--line);
-  background: #fff;
+  background: var(--surface);
   padding: 22px 12px;
 }
 
@@ -1024,7 +1007,7 @@ h2 {
   color: var(--text);
   padding: 0 12px;
   text-align: left;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .sidebar-nav button.active {
@@ -1037,14 +1020,14 @@ h2 {
   gap: 6px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   padding: 12px;
 }
 
 .sidebar-update span {
   color: var(--muted);
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .sidebar-update strong {
@@ -1084,10 +1067,10 @@ h2 {
   min-height: 38px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   color: var(--text);
   padding: 7px 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .category-tabs {
@@ -1102,10 +1085,10 @@ h2 {
   min-height: 34px;
   border: 1px solid var(--line);
   border-left: 0;
-  background: #fff;
+  background: var(--surface);
   color: var(--muted);
   padding: 7px 18px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 .category-tabs button:first-child,
@@ -1126,13 +1109,13 @@ h2 {
 .chart-metric-tabs button.active {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .dashboard-filter-dock {
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   padding: 12px;
 }
 
@@ -1193,7 +1176,7 @@ h2 {
   border: 0;
   background: transparent;
   color: var(--accent);
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .ranking-card .table-wrap {
@@ -1236,7 +1219,7 @@ h2 {
   background: var(--accent-soft);
   color: var(--accent);
   font-size: 12px;
-  font-weight: 900;
+  font-weight: 700;
 }
 
 .premium-heatmap {
@@ -1803,7 +1786,7 @@ h2 {
   background: transparent;
   color: var(--accent);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 8px 4px 0;
   cursor: pointer;
   text-align: left;
@@ -1880,7 +1863,7 @@ h2 {
   color: var(--muted);
   padding: 3px 10px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
 }
 
 /* Watchlist + Alert combined card (우상 패널) */
@@ -1910,7 +1893,7 @@ h2 {
 .watchlist-alert-section-header h3 {
   margin: 0;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text);
 }
 
@@ -1927,7 +1910,7 @@ h2 {
   color: var(--muted);
   padding: 4px 10px;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
 }
 
@@ -2077,8 +2060,8 @@ h2 {
 
 .indicator-label {
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   white-space: nowrap;
@@ -2124,8 +2107,8 @@ h2 {
 
 .metals-row small {
   color: var(--muted);
-  font-size: 10px;
-  font-weight: 800;
+  font-size: 11px;
+  font-weight: 600;
 }
 
 .metals-row strong {
@@ -2212,7 +2195,7 @@ h2 {
 .pagination button.active {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 .pagination button:disabled {
@@ -2234,14 +2217,14 @@ h2 {
   color: var(--muted);
   padding: 5px 10px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 600;
   cursor: pointer;
 }
 
 .interval-tabs button.active {
   border-color: var(--accent);
   background: var(--accent);
-  color: #fff;
+  color: var(--on-accent);
 }
 
 /* lw chart */
@@ -2369,7 +2352,7 @@ h2 {
 .tab-bar { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 20px; }
 .tab { padding: 8px 18px; border: none; background: none; color: var(--muted); font-size: 14px; font-weight: 600; border-bottom: 2px solid transparent; cursor: pointer; }
 .tab.active { color: var(--text); border-bottom-color: var(--accent); }
-.tab .badge { display: inline-block; background: var(--accent); color: #fff; font-size: 11px; border-radius: 10px; padding: 1px 6px; margin-left: 4px; }
+.tab .badge { display: inline-block; background: var(--accent); color: var(--on-accent); font-size: 11px; border-radius: 10px; padding: 1px 6px; margin-left: 4px; }
 
 /* Alert rules list */
 .alert-rules-list { display: flex; flex-direction: column; gap: 12px; }
@@ -2436,7 +2419,7 @@ h2 {
 .coin-symbol-badge.sm { width: 26px; height: 26px; font-size: 11px; }
 
 /* Buttons */
-.btn-primary { padding: 9px 20px; border-radius: 8px; border: none; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; cursor: pointer; }
+.btn-primary { padding: 9px 20px; border-radius: 8px; border: none; background: var(--accent); color: var(--on-accent); font-weight: 700; font-size: 14px; cursor: pointer; }
 .btn-secondary { padding: 9px 20px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-weight: 700; font-size: 14px; cursor: pointer; }
 .btn-sm { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer; }
 .btn-warn { border-color: var(--amber); color: var(--amber); }
@@ -2583,7 +2566,7 @@ h2 {
 .endpoint-section h3 { font-size: 14px; font-weight: 700; margin: 0 0 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
 
 /* Method badges */
-.method-badge { font-size: 11px; font-weight: 800; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; }
+.method-badge { font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 5px; text-transform: uppercase; }
 .method-badge.sm { font-size: 10px; padding: 2px 6px; }
 .method-badge.get { background: rgba(15,139,95,0.15); color: #0f8b5f; }
 .method-badge.post { background: rgba(59,130,246,0.15); color: #3b82f6; }
@@ -2632,3 +2615,17 @@ h2 {
 .sidebar-user-name { font-size: 12px; font-weight: 600; color: var(--text); }
 .sidebar-logout { border: 1px solid var(--line); background: none; color: var(--muted); font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; }
 .sidebar-login { border: 1px solid var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); color: var(--accent); font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+
+/* 등폭 숫자: 실시간 갱신 시 숫자 폭이 흔들리지 않도록(마크업 변경 없음) */
+.premium-table,
+.stat,
+.mini-stat,
+.metric-tile,
+.price-cell,
+.premium-metric,
+.coin-price-stack,
+.breakdown-list dd,
+.indicator-value,
+.wl-price {
+  font-variant-numeric: tabular-nums;
+}

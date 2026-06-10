@@ -18,6 +18,8 @@
   --shadow: 0 12px 30px rgba(16, 24, 40, 0.08);
   --chart-bg: #fbfdff;
   --input-bg: #ffffff;
+  /* 강조(accent) 배경 위 텍스트. 다크에서는 밝은 teal 위에 어두운 글자라야 대비가 산다 */
+  --on-accent: #ffffff;
 }
 
 [data-theme="dark"] {
@@ -39,6 +41,7 @@
   --shadow: 0 12px 30px rgba(0, 0, 0, 0.4);
   --chart-bg: #161b22;
   --input-bg: #1c2128;
+  --on-accent: #0d1117;
 }
 
 :root {
